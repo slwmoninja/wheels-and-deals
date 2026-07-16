@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>WheelsAndDeals</title>
+  <meta name="description" content="Search used vehicles within a driving-time radius and rank them by estimated KBB price delta — configurable make/model/mileage/budget, defaults to Jeep Wrangler near 23185.">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="theme-color" content="#0e0f0d">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="WheelsAndDeals">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="app-header">
+    <h1>🚗 WheelsAndDeals</h1>
+    <div class="tagline">Search by drive time. Sort by deal.</div>
+  </header>
+
+  <main>
+    <form class="search-panel" id="searchForm">
+      <div class="search-grid">
+        <div class="field">
+          <label for="fMake">Make</label>
+          <input id="fMake" type="text" value="Jeep" required>
+        </div>
+        <div class="field">
+          <label for="fModel">Model</label>
+          <input id="fModel" type="text" value="Wrangler" required>
+        </div>
+        <div class="field">
+          <label for="fTrim">Trim <span class="opt">(optional)</span></label>
+          <input id="fTrim" type="text" value="" placeholder="e.g. Rubicon">
+        </div>
+        <div class="field">
+          <label for="fFeatures">Features/add-ons <span class="opt">(optional)</span></label>
+          <input id="fFeatures" type="text" value="" placeholder="e.g. leather, Sky roof">
+        </div>
+        <div class="field">
+          <label for="fMileage">Max mileage</label>
+          <input id="fMileage" type="number" step="5000" min="0" value="80000">
+        </div>
+        <div class="field">
+          <label for="fBudget">Budget ($ max)</label>
+          <input id="fBudget" type="number" step="500" min="0" value="40000">
+        </div>
+        <div class="field">
+          <label for="fZip">From ZIP</label>
+          <input id="fZip" type="text" value="23185" pattern="[0-9]{5}" required>
+        </div>
+      </div>
+
+      <div class="field radius-field">
+        <label>Drive time</label>
+        <div class="radius-chips" id="radiusChips" role="radiogroup" aria-label="Drive time radius">
+          <button type="button" class="chip active" data-hours="2">≤ 2 hrs</button>
+          <button type="button" class="chip" data-hours="3">≤ 3 hrs</button>
+          <button type="button" class="chip" data-hours="4">≤ 4 hrs</button>
+        </div>
+      </div>
+
+      <div class="search-actions">
+        <button type="submit" class="btn-primary" id="searchBtn">🔎 Search</button>
+        <button type="button" class="btn-secondary" id="resetBtn">Reset to default</button>
+      </div>
+    </form>
+
+    <div id="statusBanner" class="status-banner" style="display:none"></div>
+
+    <section id="resultsSection" style="display:none">
+      <div class="results-meta" id="resultsMeta"></div>
+
+      <div class="table-wrap">
+        <table class="results-table" id="resultsTable">
+          <thead>
+            <tr>
+              <th class="col-fav"></th>
+              <th class="col-rank">#</th>
+              <th class="col-photo">Photo</th>
+              <th class="col-vehicle sortable" data-sort="vehicle">Vehicle</th>
+              <th class="col-miles sortable" data-sort="miles">Miles</th>
+              <th class="col-price sortable" data-sort="price">Asking</th>
+              <th class="col-location">Location</th>
+              <th class="col-delta sortable active" data-sort="delta">Est. KBB Delta ▲</th>
+              <th class="col-rating">Value Rating</th>
+              <th class="col-link">Link</th>
+            </tr>
+          </thead>
+          <tbody id="resultsBody"></tbody>
+        </table>
+      </div>
+
+      <p class="results-note" id="resultsNote"></p>
+    </section>
+
+    <section id="inspectionSection" style="display:none">
+      <div class="section-label">🔧 Pre-Purchase Inspection — Top 5 &amp; Favorites</div>
+      <div class="table-wrap">
+        <table class="results-table" id="inspectionTable">
+          <thead>
+            <tr>
+              <th class="col-rank">#</th>
+              <th class="col-vehicle">Vehicle</th>
+              <th class="col-location">Inspection shop</th>
+              <th class="col-price">Cost</th>
+            </tr>
+          </thead>
+          <tbody id="inspectionBody"></tbody>
+        </table>
+      </div>
+      <p class="results-note" id="inspectionNote">A pre-purchase inspection (PPI) is an independent mechanic's check before you buy. Where we've researched a real shop for a listing's city, it's named below with its own published price (or "call for quote" if the shop doesn't publish one) — verify current pricing and availability directly with the shop. Listings without researched shop data show a generic cost estimate instead; we don't invent shop names.</p>
+    </section>
+
+    <section id="noSnapshotSection" style="display:none">
+      <div class="empty-state">
+        <p><strong>No saved search results yet for this combination.</strong></p>
+        <p>WheelsAndDeals doesn't call a live pricing API from the browser — results come from a Claude-performed search (like the example report this app was built from). Copy the prompt below into Claude (or ask Claude Code to run it in this project) and save the returned JSON into <code>data/</code> to add this search.</p>
+        <label for="promptBox">Search prompt</label>
+        <textarea id="promptBox" readonly rows="6"></textarea>
+        <button type="button" class="btn-secondary" id="copyPromptBtn">📋 Copy prompt</button>
+      </div>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <details>
+      <summary>About the Est. KBB Delta &amp; Value Rating</summary>
+      <p>Each listing's estimated delta compares its asking price to a Kelley Blue Book Fair Purchase Price anchor for that model year/trim in typical condition. These are Claude-generated estimates from model-year valuation research, not VIN-specific KBB pulls — equipment, condition, and options can shift real book value by thousands. Confirm at kbb.com before making an offer. The Value Rating (Great Deal → Overpriced) is computed directly from that delta using fixed thresholds, not pulled from the listing site — so it's consistent across every result, unlike site-specific "deal ratings" that compare against local comps instead of book value.</p>
+    </details>
+    <details>
+      <summary>About the data</summary>
+      <p>Results are hand-researched snapshots compiled on the date shown, not a live universal search or scraper — every snapshot is produced by a Claude Chat search (using WebFetch/WebSearch, which get through the 403 blocks that plain scripted requests hit on sites like Cars.com and KBB). The default view (Jeep Wrangler, within 2 hours of 23185) matches the example report this app was built from. Searching a make/model/radius combination with no saved snapshot will show you the exact prompt to run to generate one.</p>
+    </details>
+    <details>
+      <summary>About the "Link" column</summary>
+      <p>These are Cars.com search links filtered to match each row's year/price/mileage/ZIP — not a guaranteed link to that exact listing. The original individual listing page URLs weren't preserved when this snapshot was compiled, so rather than guess a specific link that might 404 or point to the wrong vehicle, we link to the closest matching live search instead.</p>
+    </details>
+    <details>
+      <summary>About the photos</summary>
+      <p>Thumbnails are representative stock photos of that model's generation (e.g. JL-era Wrangler, 2018–present), not a photo of the specific vehicle listed — we don't have the original listing photos. Sourced from Wikimedia Commons under their stated licenses; click a thumbnail's credit for attribution.</p>
+    </details>
+    <details>
+      <summary>About the inspection guidance</summary>
+      <p>The Top 5 inspection panel is generic guidance, not a shop directory — we don't have real-time data on individual inspectors' pricing or availability, so we won't invent shop names. Cost ranges are typical U.S. market rates for an independent pre-purchase inspection (PPI).</p>
+    </details>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

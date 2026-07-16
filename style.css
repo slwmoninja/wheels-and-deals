@@ -83,7 +83,7 @@ main { max-width: 1000px; margin: 0 auto; padding: 1rem; }
 }
 .field .opt { text-transform: none; font-weight: 400; }
 
-.field input {
+.field input, .field select {
   width: 100%;
   padding: 0.55rem 0.6rem;
   border-radius: 8px;
@@ -92,29 +92,11 @@ main { max-width: 1000px; margin: 0 auto; padding: 1rem; }
   color: var(--ink);
   font-size: 0.9rem;
 }
-.field input:focus {
+.field select { cursor: pointer; }
+.field input:focus, .field select:focus {
   outline: none;
   border-color: var(--orange);
   box-shadow: 0 0 0 3px rgba(255, 77, 28, 0.18);
-}
-
-.radius-field { margin-top: 1rem; }
-
-.radius-chips { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-.chip {
-  padding: 0.45rem 0.9rem;
-  border-radius: 20px;
-  border: 1.5px solid var(--border);
-  background: var(--bg);
-  color: var(--ink-sec);
-  font-size: 0.82rem;
-  font-weight: 700;
-  cursor: pointer;
-}
-.chip.active {
-  background: linear-gradient(135deg, var(--olive), var(--olive-mid));
-  color: #fff;
-  border-color: var(--olive);
 }
 
 .search-actions { display: flex; gap: 0.6rem; margin-top: 1.1rem; flex-wrap: wrap; }

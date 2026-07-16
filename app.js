@@ -17,7 +17,7 @@ const els = {
   mileage: document.getElementById('fMileage'),
   budget: document.getElementById('fBudget'),
   zip: document.getElementById('fZip'),
-  radiusChips: document.getElementById('radiusChips'),
+  hours: document.getElementById('fHours'),
   resetBtn: document.getElementById('resetBtn'),
   statusBanner: document.getElementById('statusBanner'),
   resultsSection: document.getElementById('resultsSection'),
@@ -33,7 +33,6 @@ const els = {
   weightSummary: document.getElementById('weightSummary'),
 };
 
-let selectedHours = DEFAULT_QUERY.hours;
 let currentListings = [];
 let lastQuery = null;
 let currentSort = 'delta';
@@ -100,19 +99,6 @@ function toggleFavorite(id) {
   renderInspectionPanel(currentListings);
 }
 
-function setHours(hours) {
-  selectedHours = hours;
-  [...els.radiusChips.querySelectorAll('.chip')].forEach((chip) => {
-    chip.classList.toggle('active', Number(chip.dataset.hours) === hours);
-  });
-}
-
-els.radiusChips.addEventListener('click', (e) => {
-  const chip = e.target.closest('.chip');
-  if (!chip) return;
-  setHours(Number(chip.dataset.hours));
-});
-
 els.resetBtn.addEventListener('click', () => {
   els.make.value = DEFAULT_QUERY.make;
   els.model.value = DEFAULT_QUERY.model;
@@ -121,7 +107,7 @@ els.resetBtn.addEventListener('click', () => {
   els.mileage.value = DEFAULT_QUERY.maxMileage;
   els.budget.value = DEFAULT_QUERY.maxPrice;
   els.zip.value = DEFAULT_QUERY.zip;
-  setHours(DEFAULT_QUERY.hours);
+  els.hours.value = DEFAULT_QUERY.hours;
   runSearch();
 });
 
@@ -417,7 +403,7 @@ function currentQuery() {
     maxMileage: Number(els.mileage.value) || 0,
     maxPrice: Number(els.budget.value) || 0,
     zip: els.zip.value,
-    hours: selectedHours,
+    hours: Number(els.hours.value),
   };
 }
 
@@ -486,5 +472,4 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-setHours(DEFAULT_QUERY.hours);
 runSearch();

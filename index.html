@@ -47,17 +47,16 @@
           <input id="fZip" type="text" value="23185" pattern="[0-9]{5}" required>
         </div>
         <div class="field">
+          <label for="fHours">Drive time</label>
+          <select id="fHours">
+            <option value="2" selected>≤ 2 hrs</option>
+            <option value="3">≤ 3 hrs</option>
+            <option value="4">≤ 4 hrs</option>
+          </select>
+        </div>
+        <div class="field">
           <label for="fFeatures">Features <span class="opt">(optional)</span></label>
           <input id="fFeatures" type="text" value="" placeholder="e.g. leather, Sky roof">
-        </div>
-      </div>
-
-      <div class="field radius-field">
-        <label>Drive time</label>
-        <div class="radius-chips" id="radiusChips" role="radiogroup" aria-label="Drive time radius">
-          <button type="button" class="chip active" data-hours="2">≤ 2 hrs</button>
-          <button type="button" class="chip" data-hours="3">≤ 3 hrs</button>
-          <button type="button" class="chip" data-hours="4">≤ 4 hrs</button>
         </div>
       </div>
 

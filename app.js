@@ -324,11 +324,11 @@ function renderTable(listings) {
     const id = listingId(l);
     const isFav = favorites.has(id);
     const photo = lastQuery ? photoForListing(lastQuery, l) : null;
-    const photoCell = photo
-      ? `<a href="${photo.sourceUrl}" target="_blank" rel="noopener"><img class="photo-thumb" src="${photo.url}" alt="Representative photo" loading="lazy"><span class="photo-credit">${photo.credit}</span></a>`
-      : `<span class="photo-placeholder">No photo</span>`;
     const url = lastQuery ? listingUrl(l, lastQuery) : '#';
     const linkLabel = l.listingUrl ? 'View Listing ↗' : 'Search ↗';
+    const photoCell = photo
+      ? `<a href="${url}" target="_blank" rel="noopener"><img class="photo-thumb" src="${photo.url}" alt="Representative photo" loading="lazy"></a><a class="photo-credit" href="${photo.sourceUrl}" target="_blank" rel="noopener">${photo.credit}</a>`
+      : `<span class="photo-placeholder">No photo</span>`;
     return `
       <tr>
         <td class="col-fav"><button type="button" class="fav-btn${isFav ? ' active' : ''}" data-id="${id}" aria-label="${isFav ? 'Remove favorite' : 'Add favorite'}">${isFav ? '★' : '☆'}</button></td>

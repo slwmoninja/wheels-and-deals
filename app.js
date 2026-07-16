@@ -30,6 +30,7 @@ const els = {
   copyPromptBtn: document.getElementById('copyPromptBtn'),
   inspectionSection: document.getElementById('inspectionSection'),
   inspectionBody: document.getElementById('inspectionBody'),
+  weightSummary: document.getElementById('weightSummary'),
 };
 
 let selectedHours = DEFAULT_QUERY.hours;
@@ -37,6 +38,44 @@ let currentListings = [];
 let lastQuery = null;
 let currentSort = 'delta';
 let sortDir = 1; // 1 = best value first
+
+const WEIGHT_LABELS = { miles: 'Miles', price: 'Price', distanceMi: 'Distance', delta: 'Value' };
+const columnWeights = { miles: 0, price: 0, distanceMi: 0, delta: 0 };
+const weightInputs = [...document.querySelectorAll('.col-weight')];
+
+function totalWeight() {
+  return Object.values(columnWeights).reduce((a, b) => a + b, 0);
+}
+
+function updateWeightSummary() {
+  const active = Object.entries(columnWeights).filter(([, w]) => w > 0);
+  if (!active.length) {
+    els.weightSummary.style.display = 'none';
+    return;
+  }
+  const parts = active.map(([k, w]) => `<strong>${WEIGHT_LABELS[k]}</strong> ×${w}`).join(', ');
+  els.weightSummary.innerHTML = `<span>Ranked by your priorities: ${parts}</span><button type="button" id="clearWeightsBtn">Clear weights</button>`;
+  els.weightSummary.style.display = 'flex';
+  document.getElementById('clearWeightsBtn').addEventListener('click', () => {
+    weightInputs.forEach((inp) => { inp.value = 0; inp.classList.remove('weighted'); });
+    Object.keys(columnWeights).forEach((k) => { columnWeights[k] = 0; });
+    updateWeightSummary();
+    renderTable(currentListings);
+  });
+}
+
+weightInputs.forEach((input) => {
+  input.addEventListener('click', (e) => e.stopPropagation());
+  input.addEventListener('input', () => {
+    const key = input.dataset.weight;
+    const val = Math.max(0, Math.min(5, Number(input.value) || 0));
+    input.value = val;
+    columnWeights[key] = val;
+    input.classList.toggle('weighted', val > 0);
+    updateWeightSummary();
+    renderTable(currentListings);
+  });
+});
 
 const FAVORITES_KEY = 'wad_favorites';
 function listingId(l) {
@@ -92,7 +131,8 @@ els.form.addEventListener('submit', (e) => {
 });
 
 els.resultsTable.querySelectorAll('th.sortable').forEach((th) => {
-  th.addEventListener('click', () => {
+  th.addEventListener('click', (e) => {
+    if (e.target.closest('.col-weight')) return;
     const key = th.dataset.sort;
     if (currentSort === key) {
       sortDir *= -1;
@@ -229,7 +269,38 @@ function listingUrl(listing, query) {
   return `https://www.cars.com/shopping/results/?${params.toString()}`;
 }
 
+const WEIGHT_METRICS = {
+  miles: (l) => l.miles,
+  price: (l) => l.price,
+  distanceMi: (l) => l.distanceMi,
+  delta: (l) => kbbDeltaMid(l),
+};
+
+function weightedScoreFn(listings) {
+  const ranges = {};
+  Object.keys(WEIGHT_METRICS).forEach((key) => {
+    if (!columnWeights[key]) return;
+    const vals = listings.map(WEIGHT_METRICS[key]);
+    ranges[key] = { min: Math.min(...vals), max: Math.max(...vals) };
+  });
+  return (l) => {
+    let score = 0;
+    Object.keys(WEIGHT_METRICS).forEach((key) => {
+      const w = columnWeights[key];
+      if (!w) return;
+      const { min, max } = ranges[key];
+      const norm = max === min ? 0 : (WEIGHT_METRICS[key](l) - min) / (max - min);
+      score += w * norm; // lower is always better across all four metrics
+    });
+    return score;
+  };
+}
+
 function sortListings(listings) {
+  if (totalWeight() > 0) {
+    const scoreFn = weightedScoreFn(listings);
+    return [...listings].sort((a, b) => scoreFn(a) - scoreFn(b));
+  }
   const sorted = [...listings];
   sorted.sort((a, b) => {
     let av, bv;

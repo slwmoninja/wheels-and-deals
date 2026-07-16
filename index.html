@@ -71,6 +71,7 @@
 
     <section id="resultsSection" style="display:none">
       <div class="results-meta" id="resultsMeta"></div>
+      <div class="weight-summary" id="weightSummary" style="display:none"></div>
 
       <div class="table-wrap">
         <table class="results-table" id="resultsTable">
@@ -80,10 +81,22 @@
               <th class="col-rank">#</th>
               <th class="col-photo">Photo</th>
               <th class="col-vehicle sortable" data-sort="vehicle">Vehicle</th>
-              <th class="col-miles sortable" data-sort="miles">Miles</th>
-              <th class="col-price sortable" data-sort="price">Asking</th>
-              <th class="col-location">Location</th>
-              <th class="col-delta sortable active" data-sort="delta">Est. KBB Delta ▲</th>
+              <th class="col-miles sortable" data-sort="miles">
+                Miles
+                <input type="number" class="col-weight" data-weight="miles" min="0" max="5" step="1" value="0" title="Priority weight for Miles (0 = off, higher = more important)" aria-label="Miles priority weight">
+              </th>
+              <th class="col-price sortable" data-sort="price">
+                Asking
+                <input type="number" class="col-weight" data-weight="price" min="0" max="5" step="1" value="0" title="Priority weight for Price (0 = off, higher = more important)" aria-label="Price priority weight">
+              </th>
+              <th class="col-location">
+                Location
+                <input type="number" class="col-weight" data-weight="distanceMi" min="0" max="5" step="1" value="0" title="Priority weight for Distance (0 = off, higher = more important)" aria-label="Distance priority weight">
+              </th>
+              <th class="col-delta sortable active" data-sort="delta">
+                Est. KBB Delta ▲
+                <input type="number" class="col-weight" data-weight="delta" min="0" max="5" step="1" value="0" title="Priority weight for Value/KBB Delta (0 = off, higher = more important)" aria-label="Value priority weight">
+              </th>
               <th class="col-rating">Value Rating</th>
               <th class="col-link">Link</th>
             </tr>

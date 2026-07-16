@@ -38,7 +38,7 @@ foreach ($snap in $index.snapshots) {
     "re-run this used-vehicle search and refresh the saved snapshot: $($q.make) $($q.trim) $($q.model),"
     "under $($q.maxMileage) miles, under `$$($q.maxPrice), within a $($q.hours)-hour drive of ZIP $($q.zip)."
     "For each current result: check whether previously-saved listings (in data\$($snap.file)) are still available -- mark or remove any that appear sold/delisted -- and add any new matching listings."
-    "Preserve the real listing detail page URL when found (listingUrl field)."
+    "Fetch each vehicle's own listing detail page (VDP), confirm its price/mileage match, and save that page's URL as the listingUrl field -- never substitute a generic search-results link; only omit listingUrl if that specific vehicle's own page truly cannot be found."
     "WebSearch a KBB Fair Purchase Price anchor per listing for the kbbDeltaLow/kbbDeltaHigh estimate."
     "For the top 5 best-value results, WebFetch/WebSearch a real, named pre-purchase-inspection shop actually serving that city (phone/address/price if published) for the inspection field -- never invent a business."
     "Update compiledDate to today. Overwrite data\$($snap.file) matching its existing JSON schema exactly. Do not modify snapshots-index.json."

@@ -306,23 +306,27 @@ function weightedScoreFn(listings) {
 }
 
 function sortListings(listings) {
+  let sorted;
   if (totalWeight() > 0) {
     const scoreFn = weightedScoreFn(listings);
-    return [...listings].sort((a, b) => scoreFn(a) - scoreFn(b));
+    sorted = [...listings].sort((a, b) => scoreFn(a) - scoreFn(b));
+  } else {
+    sorted = [...listings];
+    sorted.sort((a, b) => {
+      let av, bv;
+      switch (currentSort) {
+        case 'vehicle': av = `${a.year} ${a.trim}`; bv = `${b.year} ${b.trim}`; return sortDir * av.localeCompare(bv);
+        case 'miles': av = a.miles; bv = b.miles; break;
+        case 'price': av = a.price; bv = b.price; break;
+        case 'delta':
+        default: av = kbbDeltaMid(a); bv = kbbDeltaMid(b); break;
+      }
+      return sortDir * (av - bv);
+    });
   }
-  const sorted = [...listings];
-  sorted.sort((a, b) => {
-    let av, bv;
-    switch (currentSort) {
-      case 'vehicle': av = `${a.year} ${a.trim}`; bv = `${b.year} ${b.trim}`; return sortDir * av.localeCompare(bv);
-      case 'miles': av = a.miles; bv = b.miles; break;
-      case 'price': av = a.price; bv = b.price; break;
-      case 'delta':
-      default: av = kbbDeltaMid(a); bv = kbbDeltaMid(b); break;
-    }
-    return sortDir * (av - bv);
-  });
-  return sorted;
+  const favs = sorted.filter((l) => favorites.has(listingId(l)));
+  const rest = sorted.filter((l) => !favorites.has(listingId(l)));
+  return [...favs, ...rest];
 }
 
 function renderTable(listings) {

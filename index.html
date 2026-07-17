@@ -15,6 +15,10 @@
 </head>
 <body>
   <header class="app-header">
+    <div class="header-icons">
+      <button type="button" class="icon-btn" id="infoToggleBtn" aria-label="About this app" title="About this app">ℹ️</button>
+      <button type="button" class="icon-btn" id="inspectionToggleBtn" aria-label="Pre-purchase inspection for top results" title="Pre-purchase inspection for top results" disabled>🔧</button>
+    </div>
     <h1>🚗 WheelsAndDeals</h1>
     <div class="tagline">Search by drive time. Sort by deal.</div>
   </header>
@@ -53,10 +57,6 @@
             <option value="3">≤ 3 hrs</option>
             <option value="4">≤ 4 hrs</option>
           </select>
-        </div>
-        <div class="field">
-          <label for="fFeatures">Features <span class="opt">(optional)</span></label>
-          <input id="fFeatures" type="text" value="" placeholder="e.g. leather, Sky roof">
         </div>
         <div class="search-actions">
           <button type="submit" class="btn-primary" id="searchBtn">🔎 Search</button>
@@ -105,28 +105,10 @@
       <p class="results-note" id="resultsNote"></p>
     </section>
 
-    <section id="inspectionSection" style="display:none">
-      <div class="section-label">🔧 Pre-Purchase Inspection — Top 5 &amp; Favorites</div>
-      <div class="table-wrap">
-        <table class="results-table" id="inspectionTable">
-          <thead>
-            <tr>
-              <th class="col-rank">#</th>
-              <th class="col-vehicle">Vehicle</th>
-              <th class="col-location">Inspection shop</th>
-              <th class="col-price">Cost</th>
-            </tr>
-          </thead>
-          <tbody id="inspectionBody"></tbody>
-        </table>
-      </div>
-      <p class="results-note" id="inspectionNote">A pre-purchase inspection (PPI) is an independent mechanic's check before you buy. Where we've researched a real shop for a listing's city, it's named below with its own published price (or "call for quote" if the shop doesn't publish one) — verify current pricing and availability directly with the shop. Listings without researched shop data show a generic cost estimate instead; we don't invent shop names.</p>
-    </section>
-
     <section id="noSnapshotSection" style="display:none">
       <div class="empty-state">
-        <p><strong>No saved search results yet for this combination.</strong></p>
-        <p>WheelsAndDeals doesn't call a live pricing API from the browser — results come from a Claude-performed search (like the example report this app was built from). Copy the prompt below into Claude (or ask Claude Code to run it in this project) and save the returned JSON into <code>data/</code> to add this search.</p>
+        <p><strong>No saved results yet for this combination.</strong></p>
+        <p>This app has no live pricing API — results come from a Claude-performed search. Copy the prompt below into Claude (or Claude Code) and save the returned JSON into <code>data/</code>.</p>
         <label for="promptBox">Search prompt</label>
         <textarea id="promptBox" readonly rows="6"></textarea>
         <button type="button" class="btn-secondary" id="copyPromptBtn">📋 Copy prompt</button>
@@ -134,28 +116,51 @@
     </section>
   </main>
 
-  <footer class="app-footer">
-    <details>
-      <summary>About the Est. KBB Delta &amp; Value Rating</summary>
-      <p>Each listing's estimated delta compares its asking price to a Kelley Blue Book Fair Purchase Price anchor for that model year/trim in typical condition. These are Claude-generated estimates from model-year valuation research, not VIN-specific KBB pulls — equipment, condition, and options can shift real book value by thousands. Confirm at kbb.com before making an offer. The Value Rating (Great Deal → Overpriced) is computed directly from that delta using fixed thresholds, not pulled from the listing site — so it's consistent across every result, unlike site-specific "deal ratings" that compare against local comps instead of book value.</p>
+  <div class="modal-backdrop" id="modalBackdrop" style="display:none"></div>
+
+  <section class="modal-panel" id="infoModal" style="display:none" aria-label="About this app">
+    <button type="button" class="modal-close" id="infoCloseBtn" aria-label="Close">✕</button>
+    <h2 class="modal-title">About WheelsAndDeals</h2>
+    <details open>
+      <summary>Est. KBB Delta &amp; Value Rating</summary>
+      <p>Delta compares asking price to a KBB Fair Purchase Price anchor for that year/trim — Claude-generated, not VIN-specific, so actual book value can vary. Confirm at kbb.com. Value Rating is computed from that delta using fixed thresholds, not the listing site's own rating.</p>
     </details>
     <details>
-      <summary>About the data</summary>
-      <p>Results are hand-researched snapshots compiled on the date shown, not a live universal search or scraper — every snapshot is produced by a Claude Chat search (using WebFetch/WebSearch, which get through the 403 blocks that plain scripted requests hit on sites like Cars.com and KBB). The default view (Jeep Wrangler, within 2 hours of 23185) matches the example report this app was built from. Searching a make/model/radius combination with no saved snapshot will show you the exact prompt to run to generate one.</p>
+      <summary>The data</summary>
+      <p>Snapshots are hand-researched via Claude Chat search (WebFetch/WebSearch get past the 403 blocks plain scrapers hit on Cars.com/KBB) — not a live API. A combination with no saved snapshot shows the prompt to generate one.</p>
     </details>
     <details>
-      <summary>About the "Link" column</summary>
-      <p>These are Cars.com search links filtered to match each row's year/price/mileage/ZIP — not a guaranteed link to that exact listing. The original individual listing page URLs weren't preserved when this snapshot was compiled, so rather than guess a specific link that might 404 or point to the wrong vehicle, we link to the closest matching live search instead.</p>
+      <summary>The "Link" column</summary>
+      <p>Rows link to the specific Cars.com listing we verified by price/mileage match ("View Listing ↗"). A few couldn't be matched to a specific page and fall back to a filtered search instead of a guess ("Search ↗").</p>
     </details>
     <details>
-      <summary>About the photos</summary>
-      <p>Thumbnails are representative stock photos of that model's generation (e.g. JL-era Wrangler, 2018–present), not a photo of the specific vehicle listed — we don't have the original listing photos. Sourced from Wikimedia Commons under their stated licenses; click a thumbnail's credit for attribution.</p>
+      <summary>The photos</summary>
+      <p>Thumbnails are stock photos by Wrangler generation, not the actual vehicle — original listing photos weren't available. Sourced from Wikimedia Commons; click the credit for attribution.</p>
     </details>
     <details>
-      <summary>About the inspection guidance</summary>
-      <p>The Top 5 inspection panel is generic guidance, not a shop directory — we don't have real-time data on individual inspectors' pricing or availability, so we won't invent shop names. Cost ranges are typical U.S. market rates for an independent pre-purchase inspection (PPI).</p>
+      <summary>The inspection guidance</summary>
+      <p>Generic guidance, not a shop directory. Cost ranges are typical U.S. PPI rates; we only name shops we've actually verified.</p>
     </details>
-  </footer>
+  </section>
+
+  <section class="modal-panel" id="inspectionSection" style="display:none" aria-label="Pre-purchase inspection">
+    <button type="button" class="modal-close" id="inspectionCloseBtn" aria-label="Close">✕</button>
+    <div class="section-label">🔧 Pre-Purchase Inspection — Top 5 &amp; Favorites</div>
+    <div class="table-wrap">
+      <table class="results-table" id="inspectionTable">
+        <thead>
+          <tr>
+            <th class="col-rank">#</th>
+            <th class="col-vehicle">Vehicle</th>
+            <th class="col-location">Inspection shop</th>
+            <th class="col-price">Cost</th>
+          </tr>
+        </thead>
+        <tbody id="inspectionBody"></tbody>
+      </table>
+    </div>
+    <p class="results-note" id="inspectionNote">A PPI is an independent mechanic's check before you buy. Where we found a real shop, it's named with its price (or "call for quote") — verify directly with the shop. Otherwise you'll see a generic cost estimate; we never invent shop names.</p>
+  </section>
 
   <script src="app.js"></script>
 </body>

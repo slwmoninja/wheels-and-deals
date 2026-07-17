@@ -13,7 +13,6 @@ const els = {
   make: document.getElementById('fMake'),
   model: document.getElementById('fModel'),
   trim: document.getElementById('fTrim'),
-  features: document.getElementById('fFeatures'),
   mileage: document.getElementById('fMileage'),
   budget: document.getElementById('fBudget'),
   zip: document.getElementById('fZip'),
@@ -30,6 +29,12 @@ const els = {
   inspectionSection: document.getElementById('inspectionSection'),
   inspectionBody: document.getElementById('inspectionBody'),
   weightSummary: document.getElementById('weightSummary'),
+  modalBackdrop: document.getElementById('modalBackdrop'),
+  infoModal: document.getElementById('infoModal'),
+  infoToggleBtn: document.getElementById('infoToggleBtn'),
+  infoCloseBtn: document.getElementById('infoCloseBtn'),
+  inspectionToggleBtn: document.getElementById('inspectionToggleBtn'),
+  inspectionCloseBtn: document.getElementById('inspectionCloseBtn'),
 };
 
 let currentListings = [];
@@ -73,6 +78,35 @@ weightInputs.forEach((input) => {
     updateWeightSummary();
     renderTable(currentListings);
   });
+});
+
+const searchFields = [...document.querySelectorAll('.search-grid input, .search-grid select')];
+function updateFilledState(field) {
+  field.classList.toggle('filled', field.value.trim() !== '');
+}
+searchFields.forEach((field) => {
+  updateFilledState(field);
+  field.addEventListener('input', () => updateFilledState(field));
+});
+
+function closeModals() {
+  els.modalBackdrop.style.display = 'none';
+  els.infoModal.style.display = 'none';
+  els.inspectionSection.style.display = 'none';
+}
+function openModal(panel) {
+  els.modalBackdrop.style.display = 'block';
+  panel.style.display = 'block';
+}
+els.infoToggleBtn.addEventListener('click', () => openModal(els.infoModal));
+els.infoCloseBtn.addEventListener('click', closeModals);
+els.inspectionToggleBtn.addEventListener('click', () => {
+  if (!els.inspectionToggleBtn.disabled) openModal(els.inspectionSection);
+});
+els.inspectionCloseBtn.addEventListener('click', closeModals);
+els.modalBackdrop.addEventListener('click', closeModals);
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeModals();
 });
 
 const FAVORITES_KEY = 'wad_favorites';
@@ -194,11 +228,6 @@ function applyFilters(listings, query) {
     const driveHours = l.distanceMi / 55; // rough highway-speed estimate
     if (driveHours > query.hours + 0.15) return false;
     if (query.trim && !l.trim.toLowerCase().includes(query.trim.toLowerCase())) return false;
-    if (query.features) {
-      const haystack = `${l.trim} ${l.features || ''}`.toLowerCase();
-      const terms = query.features.toLowerCase().split(',').map((t) => t.trim()).filter(Boolean);
-      if (!terms.every((t) => haystack.includes(t))) return false;
-    }
     return true;
   });
 }
@@ -373,12 +402,12 @@ function renderInspectionPanel(listings) {
   const favExtras = valueSorted.filter((l) => favorites.has(listingId(l)) && !top5Ids.has(listingId(l)));
   const rows = [...top5.map((l) => ({ l, fav: favorites.has(listingId(l)) })), ...favExtras.map((l) => ({ l, fav: true }))];
 
+  els.inspectionToggleBtn.disabled = !rows.length;
   if (!rows.length) {
     els.inspectionSection.style.display = 'none';
     return;
   }
   els.inspectionBody.innerHTML = rows.map(({ l, fav }, i) => inspectionRowHtml(l, i + 1, fav ? '★ ' : '')).join('');
-  els.inspectionSection.style.display = 'block';
 }
 
 function currentQuery() {
@@ -386,7 +415,6 @@ function currentQuery() {
     make: els.make.value,
     model: els.model.value,
     trim: els.trim.value,
-    features: els.features.value,
     maxMileage: Number(els.mileage.value) || 0,
     maxPrice: Number(els.budget.value) || 0,
     zip: els.zip.value,
@@ -395,7 +423,7 @@ function currentQuery() {
 }
 
 function buildPrompt(query) {
-  return `Using WebFetch/WebSearch (not a scripted HTTP request — Cars.com, KBB, and similar sites block plain curl/requests-style scraping with a 403/Akamai block, but Claude's WebFetch tool gets through), search current used-vehicle listings for a ${query.make} ${query.trim ? query.trim + ' ' : ''}${query.model}, under ${query.maxMileage.toLocaleString()} miles, under $${query.maxPrice.toLocaleString()}, within a ${query.hours}-hour drive of ZIP ${query.zip}. For each result: (1) WebSearch a KBB Fair Purchase Price anchor for that model year/trim and estimate the delta vs. asking price; (2) fetch that specific vehicle's own listing detail page (VDP) — not just the search-results page — confirm the price and mileage shown on it match, and save that URL in a "listingUrl" field; only omit "listingUrl" if you genuinely cannot locate that specific vehicle's own page (never substitute a generic search-results link in its place); (3) note any standout options/add-ons mentioned (leather, upgraded roof, etc.) in a "features" field. For the top 5 best-value results, also WebFetch/WebSearch a real, named pre-purchase-inspection shop (independent mechanic or mobile PPI service) actually serving that listing's city — with phone/address and published price if the shop lists one — rather than generic advice; don't invent a business that isn't real. Sort results by best value first (most under book). Save the results as JSON matching the schema in data/jeep-wrangler-23185.json, write it to data/${slugify(query.make)}-${slugify(query.model)}-${query.zip}.json, and add an entry to data/snapshots-index.json.`;
+  return `Using WebFetch/WebSearch (not a scripted HTTP request — Cars.com, KBB, and similar sites block plain curl/requests-style scraping with a 403/Akamai block, but Claude's WebFetch tool gets through), search current used-vehicle listings for a ${query.make} ${query.trim ? query.trim + ' ' : ''}${query.model}, under ${query.maxMileage.toLocaleString()} miles, under $${query.maxPrice.toLocaleString()}, within a ${query.hours}-hour drive of ZIP ${query.zip}. For each result: (1) WebSearch a KBB Fair Purchase Price anchor for that model year/trim and estimate the delta vs. asking price; (2) fetch that specific vehicle's own listing detail page (VDP) — not just the search-results page — confirm the price and mileage shown on it match, and save that URL in a "listingUrl" field; only omit "listingUrl" if you genuinely cannot locate that specific vehicle's own page (never substitute a generic search-results link in its place). For the top 5 best-value results, also WebFetch/WebSearch a real, named pre-purchase-inspection shop (independent mechanic or mobile PPI service) actually serving that listing's city — with phone/address and published price if the shop lists one — rather than generic advice; don't invent a business that isn't real. Sort results by best value first (most under book). Save the results as JSON matching the schema in data/jeep-wrangler-23185.json, write it to data/${slugify(query.make)}-${slugify(query.model)}-${query.zip}.json, and add an entry to data/snapshots-index.json.`;
 }
 
 async function runSearch() {
@@ -403,7 +431,8 @@ async function runSearch() {
   els.statusBanner.style.display = 'none';
   els.resultsSection.style.display = 'none';
   els.noSnapshotSection.style.display = 'none';
-  els.inspectionSection.style.display = 'none';
+  closeModals();
+  els.inspectionToggleBtn.disabled = true;
 
   let index;
   try {

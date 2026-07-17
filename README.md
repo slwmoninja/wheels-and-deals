@@ -1,6 +1,6 @@
 # WheelsAndDeals
 
-Search used vehicles within a driving-time radius and rank them by estimated KBB price delta. Configurable make/model/mileage/budget/trim/features; defaults to Jeep Wrangler, under 80,000 mi, under $40,000, within 2 hours of ZIP 23185.
+Search used vehicles within a driving-time radius and rank them by estimated KBB price delta. Configurable make/model/mileage/budget/trim; defaults to Jeep Wrangler, under 80,000 mi, under $40,000, within 2 hours of ZIP 23185.
 
 ## Run it locally
 

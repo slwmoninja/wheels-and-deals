@@ -59,6 +59,63 @@ body {
 .app-header h1 { margin: 0; font-size: 1.5rem; font-weight: 900; letter-spacing: -0.3px; }
 .app-header .tagline { font-size: 0.82rem; opacity: 0.85; margin-top: 0.2rem; }
 
+.header-icons { position: absolute; top: 0.9rem; right: 1rem; display: flex; gap: 0.5rem; }
+.icon-btn {
+  width: 2.3rem;
+  height: 2.3rem;
+  border-radius: 50%;
+  border: 1px solid rgba(245, 244, 239, 0.35);
+  background: rgba(0, 0, 0, 0.15);
+  color: #fff;
+  font-size: 1.05rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.icon-btn:hover:not(:disabled) { background: rgba(0, 0, 0, 0.32); }
+.icon-btn:disabled { opacity: 0.35; cursor: default; }
+
+.modal-backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.55); z-index: 40; }
+.modal-panel {
+  position: fixed;
+  top: 6%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(720px, 92vw);
+  max-height: 85vh;
+  overflow-y: auto;
+  background: var(--panel-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.3rem 1.3rem 1.1rem;
+  z-index: 41;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+.modal-title { margin: 0 0 0.6rem; font-size: 1.05rem; }
+.modal-close {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  background: none;
+  border: none;
+  color: var(--ink-sec);
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+.modal-close:hover { color: var(--ink); }
+.modal-panel details {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.7rem 1rem;
+  margin-bottom: 0.6rem;
+  font-size: 0.85rem;
+}
+.modal-panel summary { cursor: pointer; font-weight: 700; color: var(--ink-sec); list-style: none; }
+.modal-panel summary::-webkit-details-marker { display: none; }
+.modal-panel p { color: var(--ink-muted); line-height: 1.5; margin: 0.5rem 0 0; }
+
 main { max-width: 1000px; margin: 0 auto; padding: 1rem; }
 
 /* SEARCH PANEL */
@@ -91,12 +148,23 @@ main { max-width: 1000px; margin: 0 auto; padding: 1rem; }
   background: var(--bg);
   color: var(--ink);
   font-size: 0.9rem;
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .field select { cursor: pointer; }
 .field input:focus, .field select:focus {
   outline: none;
   border-color: var(--orange);
   box-shadow: 0 0 0 3px rgba(255, 77, 28, 0.18);
+}
+.field input.filled, .field select.filled {
+  border-color: var(--orange);
+  background:
+    linear-gradient(160deg, rgba(255, 77, 28, 0.18), rgba(255, 77, 28, 0.04)),
+    var(--bg);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.3),
+    0 2px 8px rgba(255, 77, 28, 0.3);
 }
 
 .search-actions { display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: flex-end; }
@@ -295,19 +363,6 @@ main { max-width: 1000px; margin: 0 auto; padding: 1rem; }
   background: var(--bg);
   color: var(--ink);
 }
-
-.app-footer { max-width: 1000px; margin: 1.4rem auto 0; padding: 0 1rem; }
-.app-footer details {
-  background: var(--panel-raised);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 0.7rem 1rem;
-  margin-bottom: 0.6rem;
-  font-size: 0.85rem;
-}
-.app-footer summary { cursor: pointer; font-weight: 700; color: var(--ink-sec); list-style: none; }
-.app-footer summary::-webkit-details-marker { display: none; }
-.app-footer p { color: var(--ink-muted); line-height: 1.5; margin: 0.5rem 0 0; }
 
 @media (max-width: 600px) {
   .app-header h1 { font-size: 1.3rem; }

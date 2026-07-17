@@ -30,15 +30,23 @@ Data comes from **Claude Chat searches**, not a live scraping pipeline. Cars.com
 
 ## New searches without copy/paste
 
-There's no way for this static, no-backend site to sign in to your Claude.ai account from the browser — a Pro/Max chat subscription and an API key are different products, and a public site can't safely hold either. The 🔌 "Connect Claude" icon in the header explains this and gives you a one-line command instead.
+There's no way for this static, no-backend site to sign in to your Claude.ai account from the browser — a Pro/Max chat subscription and an API key are different products, and a public site can't safely hold either. The 🔌 "Connect Claude" icon in the header explains this and offers two ways around the manual copy-prompt/copy-JSON flow, both using **your own** Claude Code login (not an API key, not anything tied to whoever wrote this app) — so anyone who clones this repo gets the same options with their own subscription.
 
-`scripts/new-search.ps1` runs a brand-new search via `claude -p` (headless Claude Code, your existing login — not an API key) and writes the result straight into `data/` and `data/snapshots-index.json` — no manual copy-pasting of a prompt or the JSON it returns.
+**Option 1 — one-click, no terminal at all.** Run the local search agent alongside `serve.ps1`/`serve.sh`:
+
+```
+python scripts/local-agent.py        (or python3 on Mac/Linux)
+```
+
+With it running, the 🔌 icon (and the "no saved results" screen) shows a green "🟢 Local agent detected" status and a "▶ Run this search now" button — click it and the app runs the search, saves the result, and reloads automatically. The agent only accepts requests from this app's own known origins (not `*`) and only listens on `127.0.0.1`, so no other website or device can trigger it.
+
+**Option 2 — one command, no extra process running.** If you don't want to keep the agent running, both the same spots give you a ready-to-run one-liner instead:
 
 ```
 powershell -File scripts\new-search.ps1 -Make Toyota -Model 4Runner -Zip 23185
 ```
 
-The "no saved results" screen and the 🔌 header icon both generate this command pre-filled with your current search fields — just copy and run it, then refresh the app (or `git push` to publish).
+Either way, `data/` and `data/snapshots-index.json` get written to directly — no manual copy-pasting of a prompt or the JSON it returns. Refresh the app (or `git push` to publish) once it's done.
 
 ## Automated refresh (optional)
 

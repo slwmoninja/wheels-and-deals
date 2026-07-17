@@ -95,7 +95,9 @@
     <section id="noSnapshotSection" style="display:none">
       <div class="empty-state">
         <p><strong>No saved results yet for this combination.</strong></p>
-        <p>Fastest: run this command once — it uses your existing Claude Code login (not a live API) to research this search and save the results straight into <code>data/</code>.</p>
+        <div class="agent-status" id="agentStatusInline"></div>
+        <button type="button" class="btn-primary" id="runAgentBtnInline" style="display:none">▶ Run this search now</button>
+        <p>Or run this command yourself once — it uses your existing Claude Code login (not a live API) to research this search and save the results straight into <code>data/</code>.</p>
         <label for="cliBox">Terminal command</label>
         <textarea id="cliBox" readonly rows="2"></textarea>
         <button type="button" class="btn-secondary" id="copyCliBtn">💻 Copy command</button>
@@ -143,7 +145,10 @@
   <section class="modal-panel" id="connectModal" style="display:none" aria-label="Connect Claude">
     <button type="button" class="modal-close" id="connectCloseBtn" aria-label="Close">✕</button>
     <h2 class="modal-title">Connect Claude</h2>
-    <p>This site is static with no backend or stored key, so it can't sign in to your Claude.ai account from the browser — a Pro/Max chat subscription isn't the same thing as an API key, and a public site can't safely hold either. What it <em>can</em> do: use your existing Claude Code login to run the search and save results straight into <code>data/</code>, skipping the copy-prompt-into-chat-then-copy-JSON-back step entirely.</p>
+    <p>This site is static with no backend or stored key, so it can't sign in to your Claude.ai account from the browser — a Pro/Max chat subscription isn't the same thing as an API key, and a public site can't safely hold either. Instead, a small local helper running on your own machine (using your own Claude Code login) can run searches for this button — see README.md to set it up once.</p>
+    <div class="agent-status" id="agentStatusModal"></div>
+    <button type="button" class="btn-primary" id="runAgentBtnModal" style="display:none">▶ Run this search now</button>
+    <p>Or copy a one-line command to run manually:</p>
     <label for="connectCliBox">Command for the current search fields</label>
     <textarea id="connectCliBox" readonly rows="2"></textarea>
     <button type="button" class="btn-secondary" id="copyConnectCliBtn">💻 Copy command</button>

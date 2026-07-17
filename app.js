@@ -45,6 +45,10 @@ const els = {
   connectCloseBtn: document.getElementById('connectCloseBtn'),
   connectCliBox: document.getElementById('connectCliBox'),
   copyConnectCliBtn: document.getElementById('copyConnectCliBtn'),
+  agentStatusModal: document.getElementById('agentStatusModal'),
+  runAgentBtnModal: document.getElementById('runAgentBtnModal'),
+  agentStatusInline: document.getElementById('agentStatusInline'),
+  runAgentBtnInline: document.getElementById('runAgentBtnInline'),
 };
 
 let currentListings = [];
@@ -122,11 +126,65 @@ els.aboutBtn.addEventListener('click', () => {
 els.connectToggleBtn.addEventListener('click', () => {
   els.connectCliBox.value = buildCliCommand(currentQuery());
   openModal(els.connectModal);
+  setupAgentUi(els.agentStatusModal, els.runAgentBtnModal);
 });
 els.connectCloseBtn.addEventListener('click', closeModals);
 els.copyConnectCliBtn.addEventListener('click', () => copyToClipboard(els.connectCliBox, els.copyConnectCliBtn, '💻 Copy command'));
 els.copyCliBtn.addEventListener('click', () => copyToClipboard(els.cliBox, els.copyCliBtn, '💻 Copy command'));
 els.modalBackdrop.addEventListener('click', closeModals);
+
+const AGENT_BASE = 'http://127.0.0.1:8792';
+
+async function checkAgentHealth() {
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 1200);
+    const res = await fetch(`${AGENT_BASE}/health`, { signal: ctrl.signal });
+    clearTimeout(timer);
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+async function setupAgentUi(statusEl, runBtn) {
+  statusEl.textContent = 'Checking for local agent...';
+  const available = await checkAgentHealth();
+  if (available) {
+    statusEl.textContent = '🟢 Local agent detected — one click runs the search for you.';
+    runBtn.style.display = 'inline-block';
+  } else {
+    statusEl.textContent = '⚪ Local agent not running (optional, see README) — use the command below instead.';
+    runBtn.style.display = 'none';
+  }
+}
+
+async function runSearchViaAgent(query, statusEl, runBtn) {
+  runBtn.disabled = true;
+  statusEl.textContent = 'Searching... this can take a minute.';
+  try {
+    const res = await fetch(`${AGENT_BASE}/search`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(query),
+    });
+    const result = await res.json();
+    if (result.success) {
+      statusEl.textContent = `Saved ${result.file} — loading results...`;
+      closeModals();
+      await runSearch();
+    } else {
+      statusEl.textContent = `Search failed: ${result.error || 'unknown error'}`;
+    }
+  } catch {
+    statusEl.textContent = 'Could not reach the local agent — is it still running?';
+  } finally {
+    runBtn.disabled = false;
+  }
+}
+
+els.runAgentBtnModal.addEventListener('click', () => runSearchViaAgent(currentQuery(), els.agentStatusModal, els.runAgentBtnModal));
+els.runAgentBtnInline.addEventListener('click', () => runSearchViaAgent(currentQuery(), els.agentStatusInline, els.runAgentBtnInline));
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') closeModals();
 });
@@ -497,6 +555,7 @@ async function runSearch() {
     els.cliBox.value = buildCliCommand(query);
     els.promptBox.value = buildPrompt(query);
     els.noSnapshotSection.style.display = 'block';
+    setupAgentUi(els.agentStatusInline, els.runAgentBtnInline);
     return;
   }
 

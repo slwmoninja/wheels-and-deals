@@ -31,10 +31,13 @@ const els = {
   weightSummary: document.getElementById('weightSummary'),
   modalBackdrop: document.getElementById('modalBackdrop'),
   infoModal: document.getElementById('infoModal'),
-  infoToggleBtn: document.getElementById('infoToggleBtn'),
   infoCloseBtn: document.getElementById('infoCloseBtn'),
   inspectionToggleBtn: document.getElementById('inspectionToggleBtn'),
   inspectionCloseBtn: document.getElementById('inspectionCloseBtn'),
+  settingsModal: document.getElementById('settingsModal'),
+  settingsToggleBtn: document.getElementById('settingsToggleBtn'),
+  settingsCloseBtn: document.getElementById('settingsCloseBtn'),
+  aboutBtn: document.getElementById('aboutBtn'),
 };
 
 let currentListings = [];
@@ -80,7 +83,7 @@ weightInputs.forEach((input) => {
   });
 });
 
-const searchFields = [...document.querySelectorAll('.search-grid input, .search-grid select')];
+const searchFields = [...document.querySelectorAll('.field input, .field select')];
 function updateFilledState(field) {
   field.classList.toggle('filled', field.value.trim() !== '');
 }
@@ -93,17 +96,23 @@ function closeModals() {
   els.modalBackdrop.style.display = 'none';
   els.infoModal.style.display = 'none';
   els.inspectionSection.style.display = 'none';
+  els.settingsModal.style.display = 'none';
 }
 function openModal(panel) {
   els.modalBackdrop.style.display = 'block';
   panel.style.display = 'block';
 }
-els.infoToggleBtn.addEventListener('click', () => openModal(els.infoModal));
 els.infoCloseBtn.addEventListener('click', closeModals);
 els.inspectionToggleBtn.addEventListener('click', () => {
   if (!els.inspectionToggleBtn.disabled) openModal(els.inspectionSection);
 });
 els.inspectionCloseBtn.addEventListener('click', closeModals);
+els.settingsToggleBtn.addEventListener('click', () => openModal(els.settingsModal));
+els.settingsCloseBtn.addEventListener('click', closeModals);
+els.aboutBtn.addEventListener('click', () => {
+  closeModals();
+  openModal(els.infoModal);
+});
 els.modalBackdrop.addEventListener('click', closeModals);
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') closeModals();
@@ -251,9 +260,10 @@ const WRANGLER_GENERATION_PHOTOS = {
 };
 
 function photoForListing(query, listing) {
+  if (listing.photoUrl) return { url: listing.photoUrl, real: true };
   if (slugify(query.make) !== 'jeep' || slugify(query.model) !== 'wrangler') return null;
   const gen = listing.year <= 2006 ? 'TJ' : listing.year <= 2017 ? 'JK' : 'JL';
-  return WRANGLER_GENERATION_PHOTOS[gen];
+  return { ...WRANGLER_GENERATION_PHOTOS[gen], real: false };
 }
 
 function listingUrl(listing, query) {
@@ -329,7 +339,8 @@ function renderTable(listings) {
     const url = lastQuery ? listingUrl(l, lastQuery) : '#';
     const linkLabel = l.listingUrl ? 'View Listing ↗' : 'Search ↗';
     const photoCell = photo
-      ? `<a href="${url}" target="_blank" rel="noopener"><img class="photo-thumb" src="${photo.url}" alt="Representative photo" loading="lazy"></a><a class="photo-credit" href="${photo.sourceUrl}" target="_blank" rel="noopener">${photo.credit}</a>`
+      ? `<a href="${url}" target="_blank" rel="noopener"><img class="photo-thumb" src="${photo.url}" alt="${photo.real ? 'Listing photo' : 'Representative photo'}" loading="lazy"></a>` +
+        (photo.real ? '' : `<a class="photo-credit" href="${photo.sourceUrl}" target="_blank" rel="noopener">${photo.credit}</a>`)
       : `<span class="photo-placeholder">No photo</span>`;
     return `
       <tr>
@@ -423,7 +434,7 @@ function currentQuery() {
 }
 
 function buildPrompt(query) {
-  return `Using WebFetch/WebSearch (not a scripted HTTP request — Cars.com, KBB, and similar sites block plain curl/requests-style scraping with a 403/Akamai block, but Claude's WebFetch tool gets through), search current used-vehicle listings for a ${query.make} ${query.trim ? query.trim + ' ' : ''}${query.model}, under ${query.maxMileage.toLocaleString()} miles, under $${query.maxPrice.toLocaleString()}, within a ${query.hours}-hour drive of ZIP ${query.zip}. For each result: (1) WebSearch a KBB Fair Purchase Price anchor for that model year/trim and estimate the delta vs. asking price; (2) fetch that specific vehicle's own listing detail page (VDP) — not just the search-results page — confirm the price and mileage shown on it match, and save that URL in a "listingUrl" field; only omit "listingUrl" if you genuinely cannot locate that specific vehicle's own page (never substitute a generic search-results link in its place). For the top 5 best-value results, also WebFetch/WebSearch a real, named pre-purchase-inspection shop (independent mechanic or mobile PPI service) actually serving that listing's city — with phone/address and published price if the shop lists one — rather than generic advice; don't invent a business that isn't real. Sort results by best value first (most under book). Save the results as JSON matching the schema in data/jeep-wrangler-23185.json, write it to data/${slugify(query.make)}-${slugify(query.model)}-${query.zip}.json, and add an entry to data/snapshots-index.json.`;
+  return `Using WebFetch/WebSearch (not a scripted HTTP request — Cars.com, KBB, and similar sites block plain curl/requests-style scraping with a 403/Akamai block, but Claude's WebFetch tool gets through), search current used-vehicle listings for a ${query.make} ${query.trim ? query.trim + ' ' : ''}${query.model}, under ${query.maxMileage.toLocaleString()} miles, under $${query.maxPrice.toLocaleString()}, within a ${query.hours}-hour drive of ZIP ${query.zip}. For each result: (1) WebSearch a KBB Fair Purchase Price anchor for that model year/trim and estimate the delta vs. asking price; (2) fetch that specific vehicle's own listing detail page (VDP) — not just the search-results page — confirm the price and mileage shown on it match, and save that URL in a "listingUrl" field; only omit "listingUrl" if you genuinely cannot locate that specific vehicle's own page (never substitute a generic search-results link in its place); (3) from that same VDP, grab the direct URL of that vehicle's own primary photo (verify it's a real photo of that vehicle, not a placeholder or dealer logo, before trusting it) and save it in a "photoUrl" field; only omit "photoUrl" if no real photo could be found. For the top 5 best-value results, also WebFetch/WebSearch a real, named pre-purchase-inspection shop (independent mechanic or mobile PPI service) actually serving that listing's city — with phone/address and published price if the shop lists one — rather than generic advice; don't invent a business that isn't real. Sort results by best value first (most under book). Save the results as JSON matching the schema in data/jeep-wrangler-23185.json, write it to data/${slugify(query.make)}-${slugify(query.model)}-${query.zip}.json, and add an entry to data/snapshots-index.json.`;
 }
 
 async function runSearch() {

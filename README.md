@@ -46,7 +46,7 @@ Run the script by hand first and confirm it completes without hanging on a permi
 
 ## Data schema
 
-See `data/jeep-wrangler-23185.json` for the canonical shape: `query` (the search that produced this snapshot), `listings[]` (each with year/trim/miles/price/city/distanceMi/kbbDeltaLow/kbbDeltaHigh, plus optional `features`, `listingUrl`, and `inspection` for the top-5 pre-purchase-inspection panel).
+See `data/jeep-wrangler-23185.json` for the canonical shape: `query` (the search that produced this snapshot), `listings[]` (each with year/trim/miles/price/city/distanceMi/kbbDeltaLow/kbbDeltaHigh, plus optional `listingUrl`, `photoUrl`, and `inspection` for the top-5 pre-purchase-inspection panel).
 
 ## Notes on honesty tradeoffs
 

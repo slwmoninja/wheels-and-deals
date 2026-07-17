@@ -16,10 +16,10 @@
 <body>
   <header class="app-header">
     <div class="header-icons">
-      <button type="button" class="icon-btn" id="infoToggleBtn" aria-label="About this app" title="About this app">ℹ️</button>
       <button type="button" class="icon-btn" id="inspectionToggleBtn" aria-label="Pre-purchase inspection for top results" title="Pre-purchase inspection for top results" disabled>🔧</button>
+      <button type="button" class="icon-btn" id="settingsToggleBtn" aria-label="Search settings" title="Search settings">⚙️</button>
     </div>
-    <h1>🚗 WheelsAndDeals</h1>
+    <h1>WheelsAndDeals</h1>
     <div class="tagline">Search by drive time. Sort by deal.</div>
   </header>
 
@@ -46,20 +46,8 @@
           <label for="fBudget">Budget ($ max)</label>
           <input id="fBudget" type="number" step="500" min="0" value="40000">
         </div>
-        <div class="field">
-          <label for="fZip">From ZIP</label>
-          <input id="fZip" type="text" value="23185" pattern="[0-9]{5}" required>
-        </div>
-        <div class="field">
-          <label for="fHours">Drive time</label>
-          <select id="fHours">
-            <option value="2" selected>≤ 2 hrs</option>
-            <option value="3">≤ 3 hrs</option>
-            <option value="4">≤ 4 hrs</option>
-          </select>
-        </div>
         <div class="search-actions">
-          <button type="submit" class="btn-primary" id="searchBtn">🔎 Search</button>
+          <button type="submit" class="btn-primary" id="searchBtn" aria-label="Search" title="Search">🔍</button>
         </div>
       </div>
     </form>
@@ -123,23 +111,11 @@
     <h2 class="modal-title">About WheelsAndDeals</h2>
     <details open>
       <summary>Est. KBB Delta &amp; Value Rating</summary>
-      <p>Delta compares asking price to a KBB Fair Purchase Price anchor for that year/trim — Claude-generated, not VIN-specific, so actual book value can vary. Confirm at kbb.com. Value Rating is computed from that delta using fixed thresholds, not the listing site's own rating.</p>
+      <p>Delta vs. a KBB Fair Purchase Price anchor — Claude-estimated, not VIN-specific. Value Rating is computed from that delta using fixed thresholds.</p>
     </details>
     <details>
       <summary>The data</summary>
-      <p>Snapshots are hand-researched via Claude Chat search (WebFetch/WebSearch get past the 403 blocks plain scrapers hit on Cars.com/KBB) — not a live API. A combination with no saved snapshot shows the prompt to generate one.</p>
-    </details>
-    <details>
-      <summary>The "Link" column</summary>
-      <p>Rows link to the specific Cars.com listing we verified by price/mileage match ("View Listing ↗"). A few couldn't be matched to a specific page and fall back to a filtered search instead of a guess ("Search ↗").</p>
-    </details>
-    <details>
-      <summary>The photos</summary>
-      <p>Thumbnails are stock photos by Wrangler generation, not the actual vehicle — original listing photos weren't available. Sourced from Wikimedia Commons; click the credit for attribution.</p>
-    </details>
-    <details>
-      <summary>The inspection guidance</summary>
-      <p>Generic guidance, not a shop directory. Cost ranges are typical U.S. PPI rates; we only name shops we've actually verified.</p>
+      <p>Snapshots come from a Claude-performed search, not a live API. No saved snapshot? You'll get the prompt to generate one.</p>
     </details>
   </section>
 
@@ -159,7 +135,24 @@
         <tbody id="inspectionBody"></tbody>
       </table>
     </div>
-    <p class="results-note" id="inspectionNote">A PPI is an independent mechanic's check before you buy. Where we found a real shop, it's named with its price (or "call for quote") — verify directly with the shop. Otherwise you'll see a generic cost estimate; we never invent shop names.</p>
+  </section>
+
+  <section class="modal-panel" id="settingsModal" style="display:none" aria-label="Search settings">
+    <button type="button" class="modal-close" id="settingsCloseBtn" aria-label="Close">✕</button>
+    <h2 class="modal-title">Search Settings</h2>
+    <div class="field">
+      <label for="fZip">From ZIP</label>
+      <input id="fZip" type="text" value="23185" pattern="[0-9]{5}" required>
+    </div>
+    <div class="field">
+      <label for="fHours">Drive time</label>
+      <select id="fHours">
+        <option value="2" selected>≤ 2 hrs</option>
+        <option value="3">≤ 3 hrs</option>
+        <option value="4">≤ 4 hrs</option>
+      </select>
+    </div>
+    <button type="button" class="btn-secondary" id="aboutBtn">ℹ️ About this app</button>
   </section>
 
   <script src="app.js"></script>

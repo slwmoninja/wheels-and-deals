@@ -16,6 +16,7 @@
 <body>
   <header class="app-header">
     <div class="header-icons">
+      <button type="button" class="icon-btn" id="galleryToggleBtn" aria-label="Photo gallery" title="Photo gallery" disabled>🖼️</button>
       <button type="button" class="icon-btn" id="connectToggleBtn" aria-label="Connect Claude to automate searches" title="Connect Claude to automate searches">🔌</button>
       <button type="button" class="icon-btn" id="settingsToggleBtn" aria-label="Search settings" title="Search settings">⚙️</button>
     </div>
@@ -123,6 +124,12 @@
       <p>Snapshots come from a Claude-performed search, not a live API. No saved snapshot? You'll get the prompt to generate one.</p>
     </details>
     <p class="results-note" id="resultsNote"></p>
+  </section>
+
+  <section class="modal-panel gallery-modal" id="galleryModal" style="display:none" aria-label="Photo gallery">
+    <button type="button" class="modal-close" id="galleryCloseBtn" aria-label="Close">✕</button>
+    <h2 class="modal-title">Photo Gallery</h2>
+    <div class="gallery-grid" id="galleryGrid"></div>
   </section>
 
   <section class="modal-panel" id="inspectionSection" style="display:none" aria-label="Pre-purchase inspection">

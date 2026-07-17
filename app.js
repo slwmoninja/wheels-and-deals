@@ -49,6 +49,10 @@ const els = {
   runAgentBtnModal: document.getElementById('runAgentBtnModal'),
   agentStatusInline: document.getElementById('agentStatusInline'),
   runAgentBtnInline: document.getElementById('runAgentBtnInline'),
+  galleryModal: document.getElementById('galleryModal'),
+  galleryToggleBtn: document.getElementById('galleryToggleBtn'),
+  galleryCloseBtn: document.getElementById('galleryCloseBtn'),
+  galleryGrid: document.getElementById('galleryGrid'),
 };
 
 let currentListings = [];
@@ -78,7 +82,7 @@ function updateWeightSummary() {
     weightInputs.forEach((inp) => { inp.value = 0; inp.classList.remove('weighted'); });
     Object.keys(columnWeights).forEach((k) => { columnWeights[k] = 0; });
     updateWeightSummary();
-    renderTable(currentListings);
+    renderResults(currentListings);
   });
 }
 
@@ -91,7 +95,7 @@ weightInputs.forEach((input) => {
     columnWeights[key] = val;
     input.classList.toggle('weighted', val > 0);
     updateWeightSummary();
-    renderTable(currentListings);
+    renderResults(currentListings);
   });
 });
 
@@ -110,6 +114,7 @@ function closeModals() {
   els.inspectionSection.style.display = 'none';
   els.settingsModal.style.display = 'none';
   els.connectModal.style.display = 'none';
+  els.galleryModal.style.display = 'none';
 }
 function openModal(panel) {
   els.modalBackdrop.style.display = 'block';
@@ -128,6 +133,10 @@ els.connectToggleBtn.addEventListener('click', () => {
   openModal(els.connectModal);
   setupAgentUi(els.agentStatusModal, els.runAgentBtnModal);
 });
+els.galleryToggleBtn.addEventListener('click', () => {
+  if (!els.galleryToggleBtn.disabled) openModal(els.galleryModal);
+});
+els.galleryCloseBtn.addEventListener('click', closeModals);
 els.connectCloseBtn.addEventListener('click', closeModals);
 els.copyConnectCliBtn.addEventListener('click', () => copyToClipboard(els.connectCliBox, els.copyConnectCliBtn, '💻 Copy command'));
 els.copyCliBtn.addEventListener('click', () => copyToClipboard(els.cliBox, els.copyCliBtn, '💻 Copy command'));
@@ -208,7 +217,7 @@ function toggleFavorite(id) {
   if (favorites.has(id)) favorites.delete(id);
   else favorites.add(id);
   saveFavorites();
-  renderTable(currentListings);
+  renderResults(currentListings);
 }
 
 els.form.addEventListener('submit', (e) => {
@@ -228,7 +237,7 @@ els.resultsTable.querySelectorAll('th.sortable').forEach((th) => {
     }
     els.resultsTable.querySelectorAll('th.sortable').forEach((h) => h.classList.remove('active'));
     th.classList.add('active');
-    renderTable(currentListings);
+    renderResults(currentListings);
   });
 });
 
@@ -403,8 +412,14 @@ function sortListings(listings) {
   return [...favs, ...rest];
 }
 
-function renderTable(listings) {
+function renderResults(listings) {
   const sorted = sortListings(listings);
+  renderTableRows(sorted);
+  renderGalleryItems(sorted);
+  els.galleryToggleBtn.disabled = !sorted.length;
+}
+
+function renderTableRows(sorted) {
   els.resultsBody.innerHTML = sorted.map((l, i) => {
     const mid = kbbDeltaMid(l);
     const rating = ratingForDelta(mid);
@@ -433,6 +448,28 @@ function renderTable(listings) {
         <td class="col-inspect"><button type="button" class="row-inspect-btn" data-id="${id}" aria-label="Inspection shops near ${l.city}" title="Inspection shops near this listing">🔧</button></td>
         <td class="col-link"><a href="${url}" target="_blank" rel="noopener" class="btn-secondary" style="display:inline-block;padding:0.3rem 0.6rem;font-size:0.72rem;">${linkLabel}</a></td>
       </tr>`;
+  }).join('');
+}
+
+function renderGalleryItems(sorted) {
+  els.galleryGrid.innerHTML = sorted.map((l, i) => {
+    const mid = kbbDeltaMid(l);
+    const rating = ratingForDelta(mid);
+    const photo = lastQuery ? photoForListing(lastQuery, l) : null;
+    const url = lastQuery ? listingUrl(l, lastQuery) : '#';
+    const imgHtml = photo
+      ? `<img class="gallery-photo" src="${photo.url}" alt="${photo.real ? 'Listing photo' : 'Representative photo'}" loading="lazy">`
+      : `<div class="gallery-photo gallery-photo-placeholder">No photo</div>`;
+    return `
+      <a class="gallery-item" href="${url}" target="_blank" rel="noopener">
+        ${imgHtml}
+        <div class="gallery-caption">
+          <span class="gallery-rank">#${i + 1}</span>
+          <span class="gallery-title">${l.year} ${l.trim}</span>
+          <span class="gallery-price">$${l.price.toLocaleString()}</span>
+          <span class="rating-pill ${rating.cls}">${rating.label}</span>
+        </div>
+      </a>`;
   }).join('');
 }
 
@@ -540,6 +577,7 @@ async function runSearch() {
   els.statusBanner.style.display = 'none';
   els.resultsSection.style.display = 'none';
   els.noSnapshotSection.style.display = 'none';
+  els.galleryToggleBtn.disabled = true;
   closeModals();
 
   let index;
@@ -583,7 +621,7 @@ async function runSearch() {
   if (!filtered.length) {
     showStatus('No saved listings match those filters. Try widening mileage, budget, or drive time.');
   } else {
-    renderTable(filtered);
+    renderResults(filtered);
   }
 }
 

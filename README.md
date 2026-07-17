@@ -26,7 +26,8 @@ Data comes from **Claude Chat searches**, not a live scraping pipeline. Cars.com
 
 - **Searching a saved combination** (default: Jeep Wrangler / 23185) filters and sorts that snapshot client-side.
 - **Searching a combination with no saved snapshot** offers two options: a ready-to-run terminal command (see below) that does the whole thing for you, or a prompt you can paste into Claude Chat by hand instead.
-- **Refreshing an existing snapshot** (new prices, sold listings, etc.) can be done by hand the same way, or automated — see below.
+- **The 🖼️ gallery icon** shows every current result as a photo grid instead of a table, in whatever sort/priority-weight order is currently active, each photo linking straight to that vehicle's own listing.
+- **Refreshing an existing snapshot** (new prices, sold listings, etc.) happens automatically in the background when the local agent is running — see below — or can be done by hand/scheduled task.
 
 ## New searches without copy/paste
 
@@ -48,9 +49,18 @@ powershell -File scripts\new-search.ps1 -Make Toyota -Model 4Runner -Zip 23185
 
 Either way, `data/` and `data/snapshots-index.json` get written to directly — no manual copy-pasting of a prompt or the JSON it returns. Refresh the app (or `git push` to publish) once it's done.
 
-## Automated refresh (optional)
+## Keeping listings fresh automatically (optional)
 
-`scripts/refresh-snapshots.ps1` re-runs the same Claude Chat search for every snapshot in `data/snapshots-index.json`, using `claude -p` (headless/non-interactive Claude Code) under your existing Claude subscription login — not a separate API key.
+Cars sell fast, so when the local agent (above) is running, the app quietly asks it to re-check availability for whatever search you're currently viewing — marking sold/delisted listings and picking up new ones — at these moments:
+
+1. Whenever a saved search is (re-)loaded (opening it, or a fresh search that lands on it)
+2. Whenever you reopen the tab/app after it's been in the background
+3. Whenever you change the sort column or a priority weight
+4. As a fallback, every 2 hours while the app stays open, in case none of the above happened
+
+This is silent and non-blocking — nothing in the UI is interrupted — and it only ever does anything when the local agent is reachable; otherwise it's a no-op. If a refresh finds changes, whatever you're currently looking at reloads in place.
+
+`scripts/refresh-snapshots.ps1` does the same "re-check availability" refresh for every snapshot in `data/snapshots-index.json` from the command line (or on a schedule), for when you want it to happen independent of the app being open at all.
 
 ```
 powershell -File scripts\refresh-snapshots.ps1

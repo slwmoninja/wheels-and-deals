@@ -83,6 +83,7 @@ function updateWeightSummary() {
     Object.keys(columnWeights).forEach((k) => { columnWeights[k] = 0; });
     updateWeightSummary();
     renderResults(currentListings);
+    if (lastQuery) maybeBackgroundRefresh(lastQuery);
   });
 }
 
@@ -96,6 +97,7 @@ weightInputs.forEach((input) => {
     input.classList.toggle('weighted', val > 0);
     updateWeightSummary();
     renderResults(currentListings);
+    if (lastQuery) maybeBackgroundRefresh(lastQuery);
   });
 });
 
@@ -194,6 +196,37 @@ async function runSearchViaAgent(query, statusEl, runBtn) {
 
 els.runAgentBtnModal.addEventListener('click', () => runSearchViaAgent(currentQuery(), els.agentStatusModal, els.runAgentBtnModal));
 els.runAgentBtnInline.addEventListener('click', () => runSearchViaAgent(currentQuery(), els.agentStatusInline, els.runAgentBtnInline));
+
+// Cars sell fast -- when the local agent is available, quietly re-check availability for the
+// current search on refresh/open/re-sort/new-search, plus a 2hr fallback while the tab stays open.
+const refreshInFlight = new Set();
+function snapshotKey(query) {
+  return `${slugify(query.make)}|${slugify(query.model)}|${query.zip}`;
+}
+function sameSnapshot(a, b) {
+  return !!a && !!b && snapshotKey(a) === snapshotKey(b);
+}
+async function maybeBackgroundRefresh(query) {
+  const key = snapshotKey(query);
+  if (refreshInFlight.has(key)) return;
+  if (!(await checkAgentHealth())) return;
+  refreshInFlight.add(key);
+  try {
+    const res = await fetch(`${AGENT_BASE}/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ make: query.make, model: query.model, zip: query.zip }),
+    });
+    const result = await res.json();
+    if (result.success && sameSnapshot(lastQuery, query)) {
+      await runSearch({ skipBackgroundRefresh: true, quiet: true });
+    }
+  } catch {
+    // best-effort background maintenance -- stay quiet on failure
+  } finally {
+    refreshInFlight.delete(key);
+  }
+}
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') closeModals();
 });
@@ -238,6 +271,7 @@ els.resultsTable.querySelectorAll('th.sortable').forEach((th) => {
     els.resultsTable.querySelectorAll('th.sortable').forEach((h) => h.classList.remove('active'));
     th.classList.add('active');
     renderResults(currentListings);
+    if (lastQuery) maybeBackgroundRefresh(lastQuery);
   });
 });
 
@@ -572,13 +606,15 @@ function buildPrompt(query) {
   return `Using WebFetch/WebSearch (not a scripted HTTP request — Cars.com, KBB, and similar sites block plain curl/requests-style scraping with a 403/Akamai block, but Claude's WebFetch tool gets through), search current used-vehicle listings for a ${query.make} ${query.trim ? query.trim + ' ' : ''}${query.model}, under ${query.maxMileage.toLocaleString()} miles, under $${query.maxPrice.toLocaleString()}, within a ${query.hours}-hour drive of ZIP ${query.zip}. For each result: (1) WebSearch a KBB Fair Purchase Price anchor for that model year/trim and estimate the delta vs. asking price; (2) fetch that specific vehicle's own listing detail page (VDP) — not just the search-results page — confirm the price and mileage shown on it match, and save that URL in a "listingUrl" field; only omit "listingUrl" if you genuinely cannot locate that specific vehicle's own page (never substitute a generic search-results link in its place); (3) from that same VDP, grab the direct URL of that vehicle's own primary photo (verify it's a real photo of that vehicle, not a placeholder or dealer logo, before trusting it) and save it in a "photoUrl" field; only omit "photoUrl" if no real photo could be found. For the top 5 best-value results, also WebFetch/WebSearch a real, named pre-purchase-inspection shop (independent mechanic or mobile PPI service) actually serving that listing's city — with phone/address and published price if the shop lists one — rather than generic advice; don't invent a business that isn't real. Sort results by best value first (most under book). Save the results as JSON matching the schema in data/jeep-wrangler-23185.json, write it to data/${slugify(query.make)}-${slugify(query.model)}-${query.zip}.json, and add an entry to data/snapshots-index.json.`;
 }
 
-async function runSearch() {
+async function runSearch({ skipBackgroundRefresh = false, quiet = false } = {}) {
   const query = currentQuery();
-  els.statusBanner.style.display = 'none';
-  els.resultsSection.style.display = 'none';
-  els.noSnapshotSection.style.display = 'none';
-  els.galleryToggleBtn.disabled = true;
-  closeModals();
+  if (!quiet) {
+    els.statusBanner.style.display = 'none';
+    els.resultsSection.style.display = 'none';
+    els.noSnapshotSection.style.display = 'none';
+    els.galleryToggleBtn.disabled = true;
+    closeModals();
+  }
 
   let index;
   try {
@@ -609,6 +645,7 @@ async function runSearch() {
   currentListings = filtered;
   snapshotListings = snapshot.listings;
   lastQuery = query;
+  if (!skipBackgroundRefresh) maybeBackgroundRefresh(query);
 
   if (query.maxMileage !== snapshot.query.maxMileage || query.maxPrice !== snapshot.query.maxPrice || query.hours !== snapshot.query.hours) {
     showStatus(`Showing saved results narrowed to your filters (source snapshot covers up to ${snapshot.query.maxMileage.toLocaleString()} mi, $${snapshot.query.maxPrice.toLocaleString()}, ${snapshot.query.hours}hr from ${snapshot.query.zip}).`);
@@ -640,5 +677,12 @@ if ('serviceWorker' in navigator) {
     }).catch(() => {});
   });
 }
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && lastQuery) maybeBackgroundRefresh(lastQuery);
+});
+setInterval(() => {
+  if (lastQuery) maybeBackgroundRefresh(lastQuery);
+}, 2 * 60 * 60 * 1000);
 
 runSearch();

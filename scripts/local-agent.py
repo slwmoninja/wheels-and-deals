@@ -41,6 +41,31 @@ def slugify(s):
     return (s or "").strip().lower()
 
 
+def build_refresh_prompt(make, model, trim, max_mileage, max_price, zip_code, hours, data_file):
+    return (
+        "Using WebFetch/WebSearch (not a scripted HTTP request -- these sites block plain "
+        "curl/requests-style scraping, but Claude's WebFetch tool gets through), re-run this "
+        f"used-vehicle search and refresh the saved snapshot: {make} {trim} {model}, under "
+        f"{max_mileage} miles, under ${max_price}, within a {hours}-hour drive of ZIP {zip_code}. "
+        f"For each current result: check whether previously-saved listings (in data/{data_file}) "
+        "are still available -- mark or remove any that appear sold/delisted -- and add any new "
+        "matching listings. "
+        "Fetch each vehicle's own listing detail page (VDP), confirm its price/mileage match, and "
+        "save that page's URL as the listingUrl field -- never substitute a generic search-results "
+        "link; only omit listingUrl if that specific vehicle's own page truly cannot be found. "
+        "From that same VDP, grab the direct URL of that vehicle's own primary photo (verify it's a "
+        "real photo of that vehicle, not a placeholder/logo) and save it as the photoUrl field; only "
+        "omit photoUrl if no real photo could be found. "
+        "WebSearch a KBB Fair Purchase Price anchor per listing for the kbbDeltaLow/kbbDeltaHigh "
+        "estimate. "
+        "For the top 5 best-value results, WebFetch/WebSearch a real, named pre-purchase-inspection "
+        "shop actually serving that city (phone/address/price if published) for the inspection "
+        "field -- never invent a business. "
+        f"Update compiledDate to today. Overwrite data/{data_file} matching its existing JSON schema "
+        "exactly. Do not modify snapshots-index.json."
+    )
+
+
 def build_prompt(make, model, trim, max_mileage, max_price, zip_code, hours):
     data_file = f"{slugify(make)}-{slugify(model)}-{zip_code}.json"
     return (
@@ -99,6 +124,41 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(b'{"status":"ok"}')
 
+    def _json_response(self, origin, status, payload):
+        self.send_response(status)
+        self._send_cors(origin)
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(json.dumps(payload).encode())
+
+    def _run_claude(self, origin, prompt, data_path, data_file_name, before_mtime):
+        print(f"Running Claude Code for data/{data_file_name} ...")
+        try:
+            result = subprocess.run(
+                ["claude", "-p", prompt, "--allowedTools", "WebFetch,WebSearch,Read,Edit,Write",
+                 "--permission-mode", "acceptEdits"],
+                cwd=ROOT, capture_output=True, text=True,
+            )
+        except FileNotFoundError:
+            self._json_response(origin, 200, {
+                "success": False,
+                "error": "claude command not found -- install/log in to Claude Code first",
+            })
+            return
+
+        if before_mtime is None:
+            success = data_path.exists()
+        else:
+            success = data_path.exists() and data_path.stat().st_mtime != before_mtime
+
+        if success:
+            self._json_response(origin, 200, {"success": True, "file": data_file_name})
+            print(f"Saved: data/{data_file_name}")
+        else:
+            err = (result.stderr or result.stdout or "no data file was created/updated")[-2000:]
+            self._json_response(origin, 200, {"success": False, "error": err})
+            print("No update -- see error above.")
+
     def do_POST(self):
         origin = self._origin()
         if not origin:
@@ -106,7 +166,7 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(b'{"success":false,"error":"origin not allowed"}')
             return
-        if self.path != "/search":
+        if self.path not in ("/search", "/refresh"):
             self.send_response(404)
             self._send_cors(origin)
             self.end_headers()
@@ -121,53 +181,45 @@ class Handler(BaseHTTPRequestHandler):
         try:
             body = json.loads(self.rfile.read(length))
             make, model, zip_code = body["make"], body["model"], body["zip"]
+            if not re.match(r"^\d{5}$", str(zip_code)):
+                raise ValueError("zip must be 5 digits")
+        except Exception as e:
+            self._json_response(origin, 400, {"success": False, "error": str(e)})
+            return
+
+        data_file_name = f"{slugify(make)}-{slugify(model)}-{zip_code}.json"
+        data_path = ROOT / "data" / data_file_name
+
+        if self.path == "/search":
             trim = body.get("trim", "")
             max_mileage = int(body.get("maxMileage", 80000))
             max_price = int(body.get("maxPrice", 40000))
             hours = int(body.get("hours", 2))
-            if not re.match(r"^\d{5}$", str(zip_code)):
-                raise ValueError("zip must be 5 digits")
-        except Exception as e:
-            self.send_response(400)
-            self._send_cors(origin)
-            self.send_header("Content-Type", "application/json")
-            self.end_headers()
-            self.wfile.write(json.dumps({"success": False, "error": str(e)}).encode())
+            prompt = build_prompt(make, model, trim, max_mileage, max_price, zip_code, hours)
+            before_mtime = data_path.stat().st_mtime if data_path.exists() else None
+            self._run_claude(origin, prompt, data_path, data_file_name, before_mtime)
             return
 
-        prompt = build_prompt(make, model, trim, max_mileage, max_price, zip_code, hours)
-        data_file_name = f"{slugify(make)}-{slugify(model)}-{zip_code}.json"
-        data_path = ROOT / "data" / data_file_name
-
-        print(f"Searching {make} {trim} {model} near {zip_code} ...")
-        try:
-            result = subprocess.run(
-                ["claude", "-p", prompt, "--allowedTools", "WebFetch,WebSearch,Read,Edit,Write",
-                 "--permission-mode", "acceptEdits"],
-                cwd=ROOT, capture_output=True, text=True,
-            )
-        except FileNotFoundError:
-            self.send_response(200)
-            self._send_cors(origin)
-            self.send_header("Content-Type", "application/json")
-            self.end_headers()
-            self.wfile.write(json.dumps({
+        # /refresh: re-run an existing snapshot's own saved search params, not the browser's
+        if not data_path.exists():
+            self._json_response(origin, 404, {
                 "success": False,
-                "error": "claude command not found -- install/log in to Claude Code first",
-            }).encode())
+                "error": f"no existing snapshot data/{data_file_name} to refresh",
+            })
             return
-
-        self.send_response(200)
-        self._send_cors(origin)
-        self.send_header("Content-Type", "application/json")
-        self.end_headers()
-        if data_path.exists():
-            self.wfile.write(json.dumps({"success": True, "file": data_file_name}).encode())
-            print(f"Saved: data/{data_file_name}")
-        else:
-            err = (result.stderr or result.stdout or "no data file was created")[-2000:]
-            self.wfile.write(json.dumps({"success": False, "error": err}).encode())
-            print("No data file was created -- see error above.")
+        try:
+            existing = json.loads(data_path.read_text())
+            q = existing["query"]
+        except Exception as e:
+            self._json_response(origin, 500, {"success": False, "error": f"could not read snapshot: {e}"})
+            return
+        prompt = build_refresh_prompt(
+            q.get("make", make), q.get("model", model), q.get("trim", ""),
+            q.get("maxMileage", 80000), q.get("maxPrice", 40000), zip_code,
+            q.get("hours", 2), data_file_name,
+        )
+        before_mtime = data_path.stat().st_mtime
+        self._run_claude(origin, prompt, data_path, data_file_name, before_mtime)
 
     def log_message(self, fmt, *args):
         pass  # keep console output limited to our own prints above

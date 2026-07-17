@@ -16,7 +16,6 @@
 <body>
   <header class="app-header">
     <div class="header-icons">
-      <button type="button" class="icon-btn" id="inspectionToggleBtn" aria-label="Pre-purchase inspection for top results" title="Pre-purchase inspection for top results" disabled>🔧</button>
       <button type="button" class="icon-btn" id="settingsToggleBtn" aria-label="Search settings" title="Search settings">⚙️</button>
     </div>
     <h1>WheelsAndDeals</h1>
@@ -83,14 +82,13 @@
                 <input type="number" class="col-weight" data-weight="delta" min="0" max="5" step="1" value="0" title="Priority weight for Value/KBB Delta (0 = off, higher = more important)" aria-label="Value priority weight">
               </th>
               <th class="col-rating">Value Rating</th>
+              <th class="col-inspect"></th>
               <th class="col-link">Link</th>
             </tr>
           </thead>
           <tbody id="resultsBody"></tbody>
         </table>
       </div>
-
-      <p class="results-note" id="resultsNote"></p>
     </section>
 
     <section id="noSnapshotSection" style="display:none">
@@ -117,18 +115,18 @@
       <summary>The data</summary>
       <p>Snapshots come from a Claude-performed search, not a live API. No saved snapshot? You'll get the prompt to generate one.</p>
     </details>
+    <p class="results-note" id="resultsNote"></p>
   </section>
 
   <section class="modal-panel" id="inspectionSection" style="display:none" aria-label="Pre-purchase inspection">
     <button type="button" class="modal-close" id="inspectionCloseBtn" aria-label="Close">✕</button>
-    <div class="section-label">🔧 Pre-Purchase Inspection — Top 5 &amp; Favorites</div>
+    <div class="section-label" id="inspectionLabel">🔧 Pre-Purchase Inspection</div>
     <div class="table-wrap">
       <table class="results-table" id="inspectionTable">
         <thead>
           <tr>
-            <th class="col-rank">#</th>
-            <th class="col-vehicle">Vehicle</th>
-            <th class="col-location">Inspection shop</th>
+            <th class="col-vehicle">Shop</th>
+            <th class="col-location">Contact / Coverage</th>
             <th class="col-price">Cost</th>
           </tr>
         </thead>

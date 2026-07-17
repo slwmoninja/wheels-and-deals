@@ -181,7 +181,7 @@ main { max-width: 1000px; margin: 0 auto; padding: 1rem; }
 }
 .btn-primary { background: linear-gradient(135deg, var(--orange), var(--orange-dark)); color: #fff; box-shadow: 0 3px 10px rgba(255, 77, 28, 0.35); }
 .btn-primary:active { transform: translateY(1px); }
-#searchBtn { width: 3rem; height: 3rem; padding: 0; font-size: 1.3rem; display: flex; align-items: center; justify-content: center; }
+#searchBtn { width: auto; padding: 0.55rem 0.9rem; font-size: 1rem; line-height: 1; display: flex; align-items: center; justify-content: center; align-self: flex-end; }
 .btn-secondary { background: var(--bg); color: var(--ink-sec); border: 1px solid var(--border); }
 .btn-secondary:hover { border-color: var(--orange); color: var(--ink); }
 
@@ -317,6 +317,9 @@ main { max-width: 1000px; margin: 0 auto; padding: 1rem; }
 .col-fav { width: 2rem; }
 .fav-btn { background: none; border: none; font-size: 1.15rem; cursor: pointer; color: var(--ink-muted); line-height: 1; padding: 0.2rem; }
 .fav-btn.active { color: #ffce38; }
+.col-inspect { width: 2rem; text-align: center; }
+.row-inspect-btn { background: none; border: none; font-size: 1.05rem; cursor: pointer; color: var(--ink-muted); line-height: 1; padding: 0.2rem; }
+.row-inspect-btn:hover { color: var(--orange); }
 .col-vehicle .veh-title { font-weight: 800; color: var(--ink); }
 .col-price { white-space: nowrap; font-weight: 700; }
 .col-location { color: var(--ink-sec); white-space: nowrap; }

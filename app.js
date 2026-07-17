@@ -28,11 +28,11 @@ const els = {
   copyPromptBtn: document.getElementById('copyPromptBtn'),
   inspectionSection: document.getElementById('inspectionSection'),
   inspectionBody: document.getElementById('inspectionBody'),
+  inspectionLabel: document.getElementById('inspectionLabel'),
   weightSummary: document.getElementById('weightSummary'),
   modalBackdrop: document.getElementById('modalBackdrop'),
   infoModal: document.getElementById('infoModal'),
   infoCloseBtn: document.getElementById('infoCloseBtn'),
-  inspectionToggleBtn: document.getElementById('inspectionToggleBtn'),
   inspectionCloseBtn: document.getElementById('inspectionCloseBtn'),
   settingsModal: document.getElementById('settingsModal'),
   settingsToggleBtn: document.getElementById('settingsToggleBtn'),
@@ -41,6 +41,7 @@ const els = {
 };
 
 let currentListings = [];
+let snapshotListings = [];
 let lastQuery = null;
 let currentSort = 'delta';
 let sortDir = 1; // 1 = best value first
@@ -103,9 +104,6 @@ function openModal(panel) {
   panel.style.display = 'block';
 }
 els.infoCloseBtn.addEventListener('click', closeModals);
-els.inspectionToggleBtn.addEventListener('click', () => {
-  if (!els.inspectionToggleBtn.disabled) openModal(els.inspectionSection);
-});
 els.inspectionCloseBtn.addEventListener('click', closeModals);
 els.settingsToggleBtn.addEventListener('click', () => openModal(els.settingsModal));
 els.settingsCloseBtn.addEventListener('click', closeModals);
@@ -138,7 +136,6 @@ function toggleFavorite(id) {
   else favorites.add(id);
   saveFavorites();
   renderTable(currentListings);
-  renderInspectionPanel(currentListings);
 }
 
 els.form.addEventListener('submit', (e) => {
@@ -355,15 +352,23 @@ function renderTable(listings) {
         <td class="col-location">${l.city}${l.distanceMi ? ` (${l.distanceMi} mi)` : ''}</td>
         <td class="col-delta ${deltaClass(mid)}">${formatDelta(l)}</td>
         <td class="col-rating"><span class="rating-pill ${rating.cls}">${rating.label}</span></td>
+        <td class="col-inspect"><button type="button" class="row-inspect-btn" data-id="${id}" aria-label="Inspection shops near ${l.city}" title="Inspection shops near this listing">🔧</button></td>
         <td class="col-link"><a href="${url}" target="_blank" rel="noopener" class="btn-secondary" style="display:inline-block;padding:0.3rem 0.6rem;font-size:0.72rem;">${linkLabel}</a></td>
       </tr>`;
   }).join('');
 }
 
 els.resultsBody.addEventListener('click', (e) => {
-  const btn = e.target.closest('.fav-btn');
-  if (!btn) return;
-  toggleFavorite(btn.dataset.id);
+  const favBtn = e.target.closest('.fav-btn');
+  if (favBtn) {
+    toggleFavorite(favBtn.dataset.id);
+    return;
+  }
+  const inspectBtn = e.target.closest('.row-inspect-btn');
+  if (inspectBtn) {
+    const listing = currentListings.find((l) => listingId(l) === inspectBtn.dataset.id);
+    if (listing) openInspectionForListing(listing);
+  }
 });
 
 function inspectionEstimate(listing) {
@@ -375,50 +380,57 @@ function inspectionEstimate(listing) {
   return { costLow, costHigh, electrified: isElectrified };
 }
 
-function inspectionRowHtml(l, rank, badge) {
-  if (l.inspection) {
-    const insp = l.inspection;
-    const priceText = insp.priceLow != null
-      ? `$${insp.priceLow}–$${insp.priceHigh}`
-      : 'call for quote';
-    const nameHtml = insp.sourceUrl ? `<a href="${insp.sourceUrl}" target="_blank" rel="noopener">${insp.business}</a>` : insp.business;
-    const locationText = insp.address
-      ? `<strong>${nameHtml}</strong> · ${insp.address} · ${insp.phone}`
-      : `<strong>${nameHtml}</strong> (mobile — serves ${insp.serviceArea}) · ${insp.phone}`;
-    return `
-      <tr>
-        <td class="col-rank">${badge}${rank}</td>
-        <td class="col-vehicle"><div class="veh-title">${l.year} ${l.trim}</div></td>
-        <td class="col-location">${locationText}</td>
-        <td class="col-price">${priceText}</td>
-      </tr>`;
-  }
-  const est = inspectionEstimate(l);
-  const note = est.electrified
-    ? 'look for a shop that services hybrid/4xe drivetrains, not just standard ICE PPIs'
-    : 'any certified independent mechanic or mobile PPI service can cover this';
+function baseCityOf(city) {
+  const shipsTo = city.match(/ships to ([^)]+)/i);
+  if (shipsTo) return shipsTo[1].trim();
+  return city.replace(/^CarMax\s+/i, '').trim();
+}
+
+function shopsNearListing(listing) {
+  const targetCity = baseCityOf(listing.city).toLowerCase();
+  const seen = new Map();
+  snapshotListings.forEach((l) => {
+    if (!l.inspection || seen.has(l.inspection.business)) return;
+    const shopCity = baseCityOf(l.city).toLowerCase();
+    const serviceArea = (l.inspection.serviceArea || '').toLowerCase();
+    const exact = shopCity === targetCity;
+    if (exact || serviceArea.includes(targetCity)) {
+      seen.set(l.inspection.business, { ...l.inspection, exact });
+    }
+  });
+  return [...seen.values()].sort((a, b) => Number(b.exact) - Number(a.exact));
+}
+
+function inspectionShopRowHtml(shop) {
+  const priceText = shop.priceLow != null ? `$${shop.priceLow}–$${shop.priceHigh}` : 'call for quote';
+  const nameHtml = shop.sourceUrl ? `<a href="${shop.sourceUrl}" target="_blank" rel="noopener">${shop.business}</a>` : shop.business;
+  const coverage = shop.exact && shop.address
+    ? shop.address
+    : `serves ${shop.serviceArea || 'this area'}`;
   return `
     <tr>
-      <td class="col-rank">${badge}${rank}</td>
-      <td class="col-vehicle"><div class="veh-title">${l.year} ${l.trim}</div></td>
-      <td class="col-location">No researched shop yet — search "pre-purchase inspection" near ${l.city} (${note})</td>
-      <td class="col-price">~$${est.costLow}–$${est.costHigh} (typical, not a quote)</td>
+      <td class="col-vehicle"><strong>${nameHtml}</strong></td>
+      <td class="col-location">${coverage} · ${shop.phone}</td>
+      <td class="col-price">${priceText}</td>
     </tr>`;
 }
 
-function renderInspectionPanel(listings) {
-  const valueSorted = [...listings].sort((a, b) => kbbDeltaMid(a) - kbbDeltaMid(b));
-  const top5 = valueSorted.slice(0, 5);
-  const top5Ids = new Set(top5.map(listingId));
-  const favExtras = valueSorted.filter((l) => favorites.has(listingId(l)) && !top5Ids.has(listingId(l)));
-  const rows = [...top5.map((l) => ({ l, fav: favorites.has(listingId(l)) })), ...favExtras.map((l) => ({ l, fav: true }))];
-
-  els.inspectionToggleBtn.disabled = !rows.length;
-  if (!rows.length) {
-    els.inspectionSection.style.display = 'none';
-    return;
+function openInspectionForListing(listing) {
+  const shops = shopsNearListing(listing);
+  els.inspectionLabel.textContent = `🔧 Inspection shops — ${listing.year} ${listing.trim} (${listing.city})`;
+  if (shops.length) {
+    els.inspectionBody.innerHTML = shops.map(inspectionShopRowHtml).join('');
+  } else {
+    const est = inspectionEstimate(listing);
+    const note = est.electrified
+      ? 'look for a shop that services hybrid/4xe drivetrains, not just standard ICE PPIs'
+      : 'any certified independent mechanic or mobile PPI service can cover this';
+    els.inspectionBody.innerHTML = `
+      <tr>
+        <td colspan="3">No researched shop covers this area yet — search "pre-purchase inspection" near ${listing.city} (${note}). Typical cost: ~$${est.costLow}–$${est.costHigh} (not a quote).</td>
+      </tr>`;
   }
-  els.inspectionBody.innerHTML = rows.map(({ l, fav }, i) => inspectionRowHtml(l, i + 1, fav ? '★ ' : '')).join('');
+  openModal(els.inspectionSection);
 }
 
 function currentQuery() {
@@ -443,7 +455,6 @@ async function runSearch() {
   els.resultsSection.style.display = 'none';
   els.noSnapshotSection.style.display = 'none';
   closeModals();
-  els.inspectionToggleBtn.disabled = true;
 
   let index;
   try {
@@ -470,6 +481,7 @@ async function runSearch() {
 
   const filtered = applyFilters(snapshot.listings, query);
   currentListings = filtered;
+  snapshotListings = snapshot.listings;
   lastQuery = query;
 
   if (query.maxMileage !== snapshot.query.maxMileage || query.maxPrice !== snapshot.query.maxPrice || query.hours !== snapshot.query.hours) {
@@ -484,7 +496,6 @@ async function runSearch() {
     showStatus('No saved listings match those filters. Try widening mileage, budget, or drive time.');
   } else {
     renderTable(filtered);
-    renderInspectionPanel(filtered);
   }
 }
 

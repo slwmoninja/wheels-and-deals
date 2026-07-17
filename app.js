@@ -18,7 +18,6 @@ const els = {
   budget: document.getElementById('fBudget'),
   zip: document.getElementById('fZip'),
   hours: document.getElementById('fHours'),
-  resetBtn: document.getElementById('resetBtn'),
   statusBanner: document.getElementById('statusBanner'),
   resultsSection: document.getElementById('resultsSection'),
   resultsMeta: document.getElementById('resultsMeta'),
@@ -98,18 +97,6 @@ function toggleFavorite(id) {
   renderTable(currentListings);
   renderInspectionPanel(currentListings);
 }
-
-els.resetBtn.addEventListener('click', () => {
-  els.make.value = DEFAULT_QUERY.make;
-  els.model.value = DEFAULT_QUERY.model;
-  els.trim.value = DEFAULT_QUERY.trim;
-  els.features.value = '';
-  els.mileage.value = DEFAULT_QUERY.maxMileage;
-  els.budget.value = DEFAULT_QUERY.maxPrice;
-  els.zip.value = DEFAULT_QUERY.zip;
-  els.hours.value = DEFAULT_QUERY.hours;
-  runSearch();
-});
 
 els.form.addEventListener('submit', (e) => {
   e.preventDefault();

@@ -344,7 +344,7 @@ function renderTable(listings) {
         (photo.real ? '' : `<a class="photo-credit" href="${photo.sourceUrl}" target="_blank" rel="noopener">${photo.credit}</a>`)
       : `<span class="photo-placeholder">No photo</span>`;
     return `
-      <tr>
+      <tr class="${rating.cls}">
         <td class="col-fav"><button type="button" class="fav-btn${isFav ? ' active' : ''}" data-id="${id}" aria-label="${isFav ? 'Remove favorite' : 'Add favorite'}">${isFav ? '★' : '☆'}</button></td>
         <td class="col-rank">${i + 1}</td>
         <td class="col-photo">${photoCell}</td>

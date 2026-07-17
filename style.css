@@ -303,8 +303,7 @@ main { max-width: 1000px; margin: 0 auto; padding: 1rem; }
 
 .results-table tbody tr { border-bottom: 1px solid var(--border); }
 .results-table tbody tr:hover { background: var(--panel-raised); }
-.results-table tbody tr:nth-child(1) td.col-rank,
-.results-table tbody tr:nth-child(2) td.col-rank {
+.results-table tbody tr.rating-great td.col-rank {
   color: var(--olive-mid);
 }
 

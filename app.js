@@ -26,6 +26,8 @@ const els = {
   noSnapshotSection: document.getElementById('noSnapshotSection'),
   promptBox: document.getElementById('promptBox'),
   copyPromptBtn: document.getElementById('copyPromptBtn'),
+  cliBox: document.getElementById('cliBox'),
+  copyCliBtn: document.getElementById('copyCliBtn'),
   inspectionSection: document.getElementById('inspectionSection'),
   inspectionBody: document.getElementById('inspectionBody'),
   inspectionLabel: document.getElementById('inspectionLabel'),
@@ -38,6 +40,11 @@ const els = {
   settingsToggleBtn: document.getElementById('settingsToggleBtn'),
   settingsCloseBtn: document.getElementById('settingsCloseBtn'),
   aboutBtn: document.getElementById('aboutBtn'),
+  connectModal: document.getElementById('connectModal'),
+  connectToggleBtn: document.getElementById('connectToggleBtn'),
+  connectCloseBtn: document.getElementById('connectCloseBtn'),
+  connectCliBox: document.getElementById('connectCliBox'),
+  copyConnectCliBtn: document.getElementById('copyConnectCliBtn'),
 };
 
 let currentListings = [];
@@ -98,6 +105,7 @@ function closeModals() {
   els.infoModal.style.display = 'none';
   els.inspectionSection.style.display = 'none';
   els.settingsModal.style.display = 'none';
+  els.connectModal.style.display = 'none';
 }
 function openModal(panel) {
   els.modalBackdrop.style.display = 'block';
@@ -111,6 +119,13 @@ els.aboutBtn.addEventListener('click', () => {
   closeModals();
   openModal(els.infoModal);
 });
+els.connectToggleBtn.addEventListener('click', () => {
+  els.connectCliBox.value = buildCliCommand(currentQuery());
+  openModal(els.connectModal);
+});
+els.connectCloseBtn.addEventListener('click', closeModals);
+els.copyConnectCliBtn.addEventListener('click', () => copyToClipboard(els.connectCliBox, els.copyConnectCliBtn, '💻 Copy command'));
+els.copyCliBtn.addEventListener('click', () => copyToClipboard(els.cliBox, els.copyCliBtn, '💻 Copy command'));
 els.modalBackdrop.addEventListener('click', closeModals);
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') closeModals();
@@ -159,15 +174,16 @@ els.resultsTable.querySelectorAll('th.sortable').forEach((th) => {
   });
 });
 
-els.copyPromptBtn.addEventListener('click', async () => {
+async function copyToClipboard(box, btn, restoreLabel) {
   try {
-    await navigator.clipboard.writeText(els.promptBox.value);
-    els.copyPromptBtn.textContent = '✅ Copied';
-    setTimeout(() => { els.copyPromptBtn.textContent = '📋 Copy prompt'; }, 1500);
+    await navigator.clipboard.writeText(box.value);
+    btn.textContent = '✅ Copied';
+    setTimeout(() => { btn.textContent = restoreLabel; }, 1500);
   } catch {
-    els.promptBox.select();
+    box.select();
   }
-});
+}
+els.copyPromptBtn.addEventListener('click', () => copyToClipboard(els.promptBox, els.copyPromptBtn, '📋 Copy prompt'));
 
 function slugify(s) {
   return String(s || '').trim().toLowerCase();
@@ -449,6 +465,14 @@ function currentQuery() {
   };
 }
 
+function psQuote(s) {
+  return `"${String(s).replace(/"/g, '""')}"`;
+}
+
+function buildCliCommand(query) {
+  return `powershell -File scripts\\new-search.ps1 -Make ${psQuote(query.make)} -Model ${psQuote(query.model)} -Trim ${psQuote(query.trim)} -MaxMileage ${query.maxMileage} -MaxPrice ${query.maxPrice} -Zip ${psQuote(query.zip)} -Hours ${query.hours}`;
+}
+
 function buildPrompt(query) {
   return `Using WebFetch/WebSearch (not a scripted HTTP request — Cars.com, KBB, and similar sites block plain curl/requests-style scraping with a 403/Akamai block, but Claude's WebFetch tool gets through), search current used-vehicle listings for a ${query.make} ${query.trim ? query.trim + ' ' : ''}${query.model}, under ${query.maxMileage.toLocaleString()} miles, under $${query.maxPrice.toLocaleString()}, within a ${query.hours}-hour drive of ZIP ${query.zip}. For each result: (1) WebSearch a KBB Fair Purchase Price anchor for that model year/trim and estimate the delta vs. asking price; (2) fetch that specific vehicle's own listing detail page (VDP) — not just the search-results page — confirm the price and mileage shown on it match, and save that URL in a "listingUrl" field; only omit "listingUrl" if you genuinely cannot locate that specific vehicle's own page (never substitute a generic search-results link in its place); (3) from that same VDP, grab the direct URL of that vehicle's own primary photo (verify it's a real photo of that vehicle, not a placeholder or dealer logo, before trusting it) and save it in a "photoUrl" field; only omit "photoUrl" if no real photo could be found. For the top 5 best-value results, also WebFetch/WebSearch a real, named pre-purchase-inspection shop (independent mechanic or mobile PPI service) actually serving that listing's city — with phone/address and published price if the shop lists one — rather than generic advice; don't invent a business that isn't real. Sort results by best value first (most under book). Save the results as JSON matching the schema in data/jeep-wrangler-23185.json, write it to data/${slugify(query.make)}-${slugify(query.model)}-${query.zip}.json, and add an entry to data/snapshots-index.json.`;
 }
@@ -470,6 +494,7 @@ async function runSearch() {
 
   const entry = findSnapshotEntry(index, query);
   if (!entry) {
+    els.cliBox.value = buildCliCommand(query);
     els.promptBox.value = buildPrompt(query);
     els.noSnapshotSection.style.display = 'block';
     return;

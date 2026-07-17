@@ -16,6 +16,7 @@
 <body>
   <header class="app-header">
     <div class="header-icons">
+      <button type="button" class="icon-btn" id="connectToggleBtn" aria-label="Connect Claude to automate searches" title="Connect Claude to automate searches">🔌</button>
       <button type="button" class="icon-btn" id="settingsToggleBtn" aria-label="Search settings" title="Search settings">⚙️</button>
     </div>
     <h1>WheelsAndDeals</h1>
@@ -94,7 +95,11 @@
     <section id="noSnapshotSection" style="display:none">
       <div class="empty-state">
         <p><strong>No saved results yet for this combination.</strong></p>
-        <p>This app has no live pricing API — results come from a Claude-performed search. Copy the prompt below into Claude (or Claude Code) and save the returned JSON into <code>data/</code>.</p>
+        <p>Fastest: run this command once — it uses your existing Claude Code login (not a live API) to research this search and save the results straight into <code>data/</code>.</p>
+        <label for="cliBox">Terminal command</label>
+        <textarea id="cliBox" readonly rows="2"></textarea>
+        <button type="button" class="btn-secondary" id="copyCliBtn">💻 Copy command</button>
+        <p>Or copy this prompt into Claude chat instead, and save the returned JSON into <code>data/</code> yourself:</p>
         <label for="promptBox">Search prompt</label>
         <textarea id="promptBox" readonly rows="6"></textarea>
         <button type="button" class="btn-secondary" id="copyPromptBtn">📋 Copy prompt</button>
@@ -133,6 +138,15 @@
         <tbody id="inspectionBody"></tbody>
       </table>
     </div>
+  </section>
+
+  <section class="modal-panel" id="connectModal" style="display:none" aria-label="Connect Claude">
+    <button type="button" class="modal-close" id="connectCloseBtn" aria-label="Close">✕</button>
+    <h2 class="modal-title">Connect Claude</h2>
+    <p>This site is static with no backend or stored key, so it can't sign in to your Claude.ai account from the browser — a Pro/Max chat subscription isn't the same thing as an API key, and a public site can't safely hold either. What it <em>can</em> do: use your existing Claude Code login to run the search and save results straight into <code>data/</code>, skipping the copy-prompt-into-chat-then-copy-JSON-back step entirely.</p>
+    <label for="connectCliBox">Command for the current search fields</label>
+    <textarea id="connectCliBox" readonly rows="2"></textarea>
+    <button type="button" class="btn-secondary" id="copyConnectCliBtn">💻 Copy command</button>
   </section>
 
   <section class="modal-panel" id="settingsModal" style="display:none" aria-label="Search settings">

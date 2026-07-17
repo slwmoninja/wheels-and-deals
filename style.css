@@ -354,9 +354,9 @@ main { max-width: 1000px; margin: 0 auto; padding: 1rem; }
   border-radius: var(--radius);
   padding: 1.4rem;
 }
-.empty-state p { margin: 0 0 0.7rem; line-height: 1.5; font-size: 0.9rem; color: var(--ink-sec); }
-.empty-state label { display: block; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: var(--ink-muted); margin-bottom: 0.3rem; }
-.empty-state textarea {
+.empty-state p, #connectModal > p { margin: 0 0 0.7rem; line-height: 1.5; font-size: 0.9rem; color: var(--ink-sec); }
+.empty-state label, .modal-panel label { display: block; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: var(--ink-muted); margin-bottom: 0.3rem; }
+.empty-state textarea, .modal-panel textarea {
   width: 100%;
   border: 1px solid var(--border);
   border-radius: 8px;

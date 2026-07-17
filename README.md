@@ -25,8 +25,20 @@ This is a static site — a search form over JSON snapshot files in `data/`, ind
 Data comes from **Claude Chat searches**, not a live scraping pipeline. Cars.com, KBB, and similar sites block plain scripted requests (curl/Python `requests` get a 403/Akamai block), but Claude's own `WebFetch`/`WebSearch` tools get through. So every snapshot in `data/` was produced by asking Claude (in a Claude Code session, in this project) to search and save results — the same thing you'd do by hand in a Claude Chat conversation.
 
 - **Searching a saved combination** (default: Jeep Wrangler / 23185) filters and sorts that snapshot client-side.
-- **Searching a combination with no saved snapshot** shows a ready-made prompt — paste it into Claude to generate one.
+- **Searching a combination with no saved snapshot** offers two options: a ready-to-run terminal command (see below) that does the whole thing for you, or a prompt you can paste into Claude Chat by hand instead.
 - **Refreshing an existing snapshot** (new prices, sold listings, etc.) can be done by hand the same way, or automated — see below.
+
+## New searches without copy/paste
+
+There's no way for this static, no-backend site to sign in to your Claude.ai account from the browser — a Pro/Max chat subscription and an API key are different products, and a public site can't safely hold either. The 🔌 "Connect Claude" icon in the header explains this and gives you a one-line command instead.
+
+`scripts/new-search.ps1` runs a brand-new search via `claude -p` (headless Claude Code, your existing login — not an API key) and writes the result straight into `data/` and `data/snapshots-index.json` — no manual copy-pasting of a prompt or the JSON it returns.
+
+```
+powershell -File scripts\new-search.ps1 -Make Toyota -Model 4Runner -Zip 23185
+```
+
+The "no saved results" screen and the 🔌 header icon both generate this command pre-filled with your current search fields — just copy and run it, then refresh the app (or `git push` to publish).
 
 ## Automated refresh (optional)
 
@@ -50,6 +62,6 @@ See `data/jeep-wrangler-23185.json` for the canonical shape: `query` (the search
 
 ## Notes on honesty tradeoffs
 
-- **Listing links** point to a Cars.com search filtered to match year/price/mileage/ZIP, not a guaranteed link to that exact vehicle — the original per-listing URLs weren't preserved when this snapshot was first compiled. New snapshots generated via the refresh prompt do preserve real listing URLs where found.
-- **Photos** are generation-representative stock photos (real, credited, Wikimedia Commons), not photos of the specific listed vehicle.
-- **Inspection shops** are real, named businesses we've verified for the current top 5 (with published pricing where the shop lists it, "call for quote" where it doesn't) — never invented. Vehicles without researched shop data show a generic cost-range estimate instead.
+- **Listing links** point to the specific vehicle's own Cars.com listing page where one was verified by a price/mileage match; a handful that couldn't be matched to a specific page fall back to a filtered Cars.com search instead of a guessed link.
+- **Photos** are each vehicle's own listing photo where one was verified; falls back to a generation-representative stock photo (real, credited, Wikimedia Commons) only when a real one isn't available.
+- **Inspection shops** (🔧 icon per row) are real, named businesses we've verified (with published pricing where the shop lists it, "call for quote" where it doesn't) — never invented — matched to a listing by city or by the shop's own published service area, not a real drive-time calculation (we only have city-level data, not exact seller addresses). Listings with no matched shop show a generic cost-range estimate instead.
